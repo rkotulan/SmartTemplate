@@ -1,0 +1,32 @@
+name: Build & Publish to NuGet
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Build
+        run: dotnet build SmartTemplate.slnx -c Release
+
+      - name: Test
+        run: dotnet test SmartTemplate.slnx -c Release --no-build
+
+      - name: Pack
+        run: dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release --no-build --output ./nupkg
+
+      - name: Publish to NuGet.org
+        run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

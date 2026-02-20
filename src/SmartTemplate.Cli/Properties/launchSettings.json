@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SmartTemplate.Cli": {
+      "commandName": "Project",
+      "commandLineArgs": "render ./.templates/ --data data.yml"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet add:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet run:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(tasklist)",
+      "Bash(wmic process:*)",
+      "Bash(powershell \"Get-Process -Id 48116,48080 | Select-Object Id,@{N=''Cmd'';E={\\($_.MainModule.FileName\\)}}\")",
+      "Bash(powershell \"Get-WmiObject Win32_Process -Filter ''ProcessId=48116 or ProcessId=48080'' | Select-Object ProcessId,CommandLine\")",
+      "Bash(powershell \"Get-Process dotnet | Select-Object Id,StartTime\")",
+      "Bash(dotnet pack:*)",
+      "Bash(dotnet nuget push:*)"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>st</ToolCommandName>
+    <PackageId>SmartTemplate</PackageId>
+    <Version>1.0.2</Version>
+    <Description>Jinja2-like CLI template generator using Scriban</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="3.0.0-preview.1.26104.118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartTemplate.Core\SmartTemplate.Core.csproj" />
+  </ItemGroup>
+
+</Project>
