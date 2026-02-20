@@ -1,4 +1,4 @@
-# SmartTemplate
+﻿# SmartTemplate
 
 A lightweight CLI template renderer powered by [Scriban](https://github.com/scriban/scriban).
 Write templates with variables, loops, and date expressions — feed them YAML or JSON data and get rendered files in seconds.
@@ -13,26 +13,6 @@ To update:
 
 ```bash
 dotnet tool update -g SmartTemplate
-```
-
-### Build from source
-
-```bash
-dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release /nodeReuse:false
-dotnet tool install -g --add-source src/SmartTemplate.Cli/bin/Release SmartTemplate
-```
-
-To update from source:
-
-```bash
-dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release /nodeReuse:false
-dotnet tool update -g --add-source src/SmartTemplate.Cli/bin/Release SmartTemplate
-```
-
-Or run without installing:
-
-```bash
-dotnet run --project src/SmartTemplate.Cli -- render ...
 ```
 
 ## Quick start
