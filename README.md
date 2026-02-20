@@ -6,11 +6,23 @@ Write templates with variables, loops, and date expressions — feed them YAML o
 ## Install
 
 ```bash
+dotnet tool install -g SmartTemplate
+```
+
+To update:
+
+```bash
+dotnet tool update -g SmartTemplate
+```
+
+### Build from source
+
+```bash
 dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release /nodeReuse:false
 dotnet tool install -g --add-source src/SmartTemplate.Cli/bin/Release SmartTemplate
 ```
 
-To update an existing installation:
+To update from source:
 
 ```bash
 dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release /nodeReuse:false
