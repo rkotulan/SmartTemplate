@@ -1,3 +1,4 @@
+using System.Globalization;
 using SmartTemplate.Core.Models;
 
 namespace SmartTemplate.Core;
@@ -29,7 +30,8 @@ public static class InteractivePrompter
                 Name    = name,
                 Label   = GetString(entry, "label") is { Length: > 0 } lbl ? lbl : name,
                 Type    = GetString(entry, "type") is { Length: > 0 } t ? t : "string",
-                Default = GetString(entry, "default")
+                Default = GetString(entry, "default"),
+                Format  = GetString(entry, "format")
             });
         }
 
@@ -69,21 +71,22 @@ public static class InteractivePrompter
             await writer.WriteAsync(prompt);
             var input = await reader.ReadLineAsync();
 
-            result[def.Name] = ConvertValue(input?.Trim(), def.Type, def.Default);
+            result[def.Name] = ConvertValue(input?.Trim(), def.Type, def.Default, def.Format);
         }
 
         return result;
     }
 
-    private static object? ConvertValue(string? input, string type, string? defaultValue)
+    private static object? ConvertValue(string? input, string type, string? defaultValue, string? format = null)
     {
         var effective = string.IsNullOrEmpty(input) ? defaultValue : input;
 
         return type switch
         {
-            "int" or "integer" => int.TryParse(effective, out var i) ? i : 0,
-            "bool" or "boolean" => ParseBool(effective),
-            _ => effective ?? ""
+            "int" or "integer"   => int.TryParse(effective, out var i) ? i : 0,
+            "bool" or "boolean"  => ParseBool(effective),
+            "date"               => ParseDate(effective, format),
+            _                    => effective ?? ""
         };
     }
 
@@ -91,6 +94,32 @@ public static class InteractivePrompter
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
         return value.ToLowerInvariant() is "y" or "yes" or "true" or "1" or "ano" or "a";
+    }
+
+    // Built-in accepted formats: dd.MM.yyyy  d.M.yyyy  yyyy-MM-dd  yyyy/MM/dd
+    // Always normalizes to yyyy-MM-dd so Scriban's date.parse handles it reliably.
+    private static readonly string[] BuiltInDateFormats =
+        ["d.M.yyyy", "dd.MM.yyyy", "yyyy-MM-dd", "yyyy/MM/dd"];
+
+    private static string ParseDate(string? value, string? customFormat = null)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value ?? "";
+
+        // Custom format takes priority when specified
+        if (!string.IsNullOrWhiteSpace(customFormat) &&
+            DateTime.TryParseExact(value, customFormat, CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var dt))
+            return dt.ToString("yyyy-MM-dd");
+
+        if (DateTime.TryParseExact(value, BuiltInDateFormats, CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out dt))
+            return dt.ToString("yyyy-MM-dd");
+
+        // Fallback: let .NET try with current culture
+        if (DateTime.TryParse(value, out dt))
+            return dt.ToString("yyyy-MM-dd");
+
+        return value; // Return as-is — Scriban will report the error
     }
 
     private static string? GetString(Dictionary<string, object?> dict, string key) =>

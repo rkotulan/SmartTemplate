@@ -140,6 +140,40 @@ st render template.txt --data data.yaml --no-interactive
 # uses defaults from the prompts definitions
 ```
 
+### Prompt types
+
+| `type` | Description |
+|---|---|
+| `string` | Plain text (default) |
+| `int` | Integer number |
+| `bool` | Boolean — accepts `y`, `yes`, `true`, `1`, `ano`, `a` |
+| `date` | Date — normalized to `yyyy-MM-dd` for use with `date.parse` in templates |
+
+### Date prompts
+
+Type `date` accepts the following input formats and always normalizes the value to
+`yyyy-MM-dd` so Scriban's `date.parse` works reliably:
+
+| Input | Stored as |
+|---|---|
+| `24.2.2026` | `2026-02-24` |
+| `24.02.2026` | `2026-02-24` |
+| `2026-02-24` | `2026-02-24` |
+| `2026/02/24` | `2026-02-24` |
+
+To accept a different format use the optional `format` key (standard .NET format string):
+
+```yaml
+prompts:
+  - name: start_date
+    label: "Začátek"
+    type: date
+    format: "M/d/yyyy"
+    default: "2/24/2026"
+```
+
+The `format` is tried first; if it doesn't match, the built-in formats above are tried as fallback.
+
 ### Example: date from prompt, formatted with offsets
 
 `data.yaml`:

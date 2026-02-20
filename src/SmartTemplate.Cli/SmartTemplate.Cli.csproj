@@ -8,9 +8,14 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>st</ToolCommandName>
     <PackageId>SmartTemplate</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Description>Jinja2-like CLI template generator using Scriban</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="3.0.0-preview.1.26104.118" />
