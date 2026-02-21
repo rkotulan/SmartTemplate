@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!--
+      Plugins are class libraries loaded at runtime via Assembly.LoadFrom().
+      Do NOT change this to Exe or a tool — st discovers them by scanning *.dll files.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Reference SmartTemplate.Core for the IPlugin interface.
+
+      In a real project outside this repository, replace this with a NuGet reference:
+        <PackageReference Include="SmartTemplate.Core" Version="*" />
+    -->
+    <ProjectReference Include="..\..\src\SmartTemplate.Core\SmartTemplate.Core.csproj" />
+  </ItemGroup>
+
+</Project>

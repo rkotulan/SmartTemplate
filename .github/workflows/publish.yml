@@ -26,7 +26,9 @@ jobs:
         run: dotnet test SmartTemplate.slnx -c Release --no-build
 
       - name: Pack
-        run: dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release --no-build --output ./nupkg
+        run: |
+          dotnet pack src/SmartTemplate.Cli/SmartTemplate.Cli.csproj -c Release --no-build --output ./nupkg
+          dotnet pack plugins/SmartTemplate.Plugin.MoneyErp/SmartTemplate.Plugin.MoneyErp.csproj -c Release --no-build --output ./nupkg
 
       - name: Publish to NuGet.org
         run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

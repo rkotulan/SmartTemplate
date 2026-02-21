@@ -14,7 +14,10 @@
       "Bash(powershell \"Get-WmiObject Win32_Process -Filter ''ProcessId=48116 or ProcessId=48080'' | Select-Object ProcessId,CommandLine\")",
       "Bash(powershell \"Get-Process dotnet | Select-Object Id,StartTime\")",
       "Bash(dotnet pack:*)",
-      "Bash(dotnet nuget push:*)"
+      "Bash(dotnet nuget push:*)",
+      "Bash(sqlcmd:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -10,4 +10,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/SmartTemplate.Tests/SmartTemplate.Tests.csproj" />
   </Folder>
+  <Folder Name="/plugins/">
+    <Project Path="plugins/SmartTemplate.Plugin.Sample/SmartTemplate.Plugin.Sample.csproj" />
+    <Project Path="plugins/SmartTemplate.Plugin.MoneyErp/SmartTemplate.Plugin.MoneyErp.csproj" />
+  </Folder>
 </Solution>
