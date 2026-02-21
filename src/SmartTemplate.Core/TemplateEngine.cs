@@ -4,7 +4,7 @@ using Scriban.Runtime;
 
 namespace SmartTemplate.Core;
 
-public class TemplateEngine
+public class TemplateEngine : ITemplateRenderer
 {
     /// <summary>
     /// Renders a Scriban template string using the provided data dictionary.

@@ -11,11 +11,11 @@ public static class CliVarParser
         var result = new Dictionary<string, object?>();
         foreach (var v in vars)
         {
-            var idx = v.IndexOf('=');
-            if (idx <= 0)
+            var parts = v.Split('=', 2);
+            if (parts.Length < 2 || parts[0].Length == 0)
                 throw new ArgumentException($"Invalid --var format '{v}'. Expected key=value.");
-            var key = v[..idx].Trim();
-            var val = v[(idx + 1)..];
+            var key = parts[0].Trim();
+            var val = parts[1];
             result[key] = val;
         }
         return result;

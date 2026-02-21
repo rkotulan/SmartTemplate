@@ -50,6 +50,7 @@ public static class PluginLoader
                     if (!type.IsAbstract && !type.IsInterface && pluginType.IsAssignableFrom(type))
                     {
                         var instance = (IPlugin)Activator.CreateInstance(type)!;
+                        await instance.InitializeAsync(cancellationToken);
                         plugins.Add(instance);
                     }
                 }
@@ -82,6 +83,23 @@ public static class PluginLoader
         }
 
         return data;
+    }
+
+    /// <summary>
+    /// Calls <see cref="IPlugin.DisposeAsync"/> on all plugins in reverse load order.
+    /// Failures are written to stderr and do not abort the remaining cleanup.
+    /// </summary>
+    public static async Task CleanupPluginsAsync(IEnumerable<IPlugin> plugins)
+    {
+        foreach (var plugin in plugins.Reverse())
+        {
+            try   { await plugin.DisposeAsync(); }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync(
+                    $"Warning: plugin '{plugin.Name}' threw during cleanup: {ex.Message}");
+            }
+        }
     }
 
     /// <summary>

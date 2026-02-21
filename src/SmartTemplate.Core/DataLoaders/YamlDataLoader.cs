@@ -1,3 +1,4 @@
+using System.Globalization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -33,6 +34,23 @@ public class YamlDataLoader : IDataLoader
         null => null,
         Dictionary<object, object?> d => ConvertDict(d),
         List<object?> list => list.Select(ConvertValue).ToList(),
-        _ => value.ToString()
+        string s => ParseScalar(s),
+        _ => value   // already typed by YamlDotNet (future-proof)
     };
+
+    /// <summary>
+    /// Infers the .NET type of an unquoted YAML scalar.
+    /// YamlDotNet 16.x deserializes all scalars as <see cref="string"/> when the
+    /// target type is <see cref="object"/>; this method applies YAML 1.2 type rules.
+    /// Priority: bool → int → long → double → string.
+    /// </summary>
+    private static object? ParseScalar(string s)
+    {
+        if (bool.TryParse(s, out var b)) return b;
+        if (int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i)) return i;
+        if (long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var l)) return l;
+        if (double.TryParse(s, NumberStyles.Float | NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out var d)) return d;
+        return s;
+    }
 }

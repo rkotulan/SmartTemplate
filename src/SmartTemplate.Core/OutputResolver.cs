@@ -2,9 +2,9 @@ namespace SmartTemplate.Core;
 
 public class OutputResolver
 {
-    private readonly TemplateEngine _engine;
+    private readonly ITemplateRenderer _engine;
 
-    public OutputResolver(TemplateEngine engine)
+    public OutputResolver(ITemplateRenderer engine)
     {
         _engine = engine;
     }

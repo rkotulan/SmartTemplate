@@ -1,6 +1,5 @@
 using System.Text;
 using SmartTemplate.Core;
-using SmartTemplate.Core.DataLoaders;
 using SmartTemplate.Core.Plugins;
 using TextCopy;
 
@@ -70,27 +69,14 @@ internal static class RenderExecutor
         }
         data.Remove("plugins");
 
-        // Step 3: interactive prompts
-        var defs = InteractivePrompter.ExtractPrompts(data);
-        if (defs.Count > 0 && !noInteractive)
+        // Steps 3-5: prompts → CLI vars → plugin enrichment (enforced order via pipeline)
+        var (mergedData, plugins) = await DataMergePipeline.RunAsync(data, new DataMergePipelineOptions
         {
-            await Console.Out.WriteLineAsync("Zadejte hodnoty proměnných:");
-            var prompted = await InteractivePrompter.PromptAsync(defs);
-            foreach (var kv in prompted)
-                data[kv.Key] = kv.Value;
-        }
-
-        // Step 4: --var / vars overrides (highest priority)
-        var cliData = CliVarParser.Parse(vars);
-        foreach (var kv in cliData)
-            data[kv.Key] = kv.Value;
-
-        // Step 5: load and apply plugins (after all data — plugins have full context)
-        if (pluginsDir is not null)
-        {
-            var plugins = await PluginLoader.LoadPluginsAsync(pluginsDir, ct);
-            data = await PluginLoader.ApplyPluginsAsync(plugins, data, ct);
-        }
+            Vars          = vars,
+            NoInteractive = noInteractive,
+            PluginsDir    = pluginsDir,
+        }, ct);
+        data = mergedData;
 
         // Step 6: render
         StringBuilder? clipAccumulator = toClip ? new StringBuilder() : null;
@@ -106,13 +92,23 @@ internal static class RenderExecutor
         else
         {
             await Console.Error.WriteLineAsync($"Error: '{input}' does not exist.");
+            await PluginLoader.CleanupPluginsAsync(plugins);
             return 1;
         }
 
+        await PluginLoader.CleanupPluginsAsync(plugins);
+
         if (clipAccumulator is not null)
         {
-            await ClipboardService.SetTextAsync(clipAccumulator.ToString(), ct);
-            await Console.Error.WriteLineAsync("Copied to clipboard.");
+            try
+            {
+                await ClipboardService.SetTextAsync(clipAccumulator.ToString(), ct);
+                await Console.Error.WriteLineAsync("Copied to clipboard.");
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Warning: could not write to clipboard: {ex.Message}");
+            }
         }
 
         return 0;
