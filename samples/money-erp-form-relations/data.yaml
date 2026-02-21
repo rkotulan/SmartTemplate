@@ -1,0 +1,25 @@
+# ----------------------------------------------------------------------------
+# SmartTemplate + MoneyErp plugin — příklad pro generování FillFormRelations
+# ----------------------------------------------------------------------------
+# Použití:
+#   1. Zbuilduj plugin:
+#        dotnet build plugins/SmartTemplate.Plugin.MoneyErp/ -c Debug
+#
+#   2. Vyrenderuj šablonu:
+#        st render samples/money-erp-form-relations/templates/ \
+#                  --data samples/money-erp-form-relations/data.yaml \
+#                  -o ./out/
+# ----------------------------------------------------------------------------
+
+# Interaktivní dotaz na název objektu
+prompts:
+  - name: object_name
+    label: Název objektu (ObjectName v MetaData_Objects)
+    type: string
+    default: Smlouva
+
+connection_string: "Data Source=.;Initial Catalog=S5_System_Dev;Integrated Security=False;\
+  Persist Security Info=False;User ID=sa;Password=<password>;TrustServerCertificate=True"
+
+# Cesta ke složce s pluginem (relativní k pracovnímu adresáři, ne k tomuto souboru)
+plugins: plugins/SmartTemplate.Plugin.MoneyErp

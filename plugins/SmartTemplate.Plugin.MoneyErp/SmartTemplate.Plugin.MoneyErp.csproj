@@ -4,13 +4,32 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- Copy all NuGet dependency DLLs to the output folder so the plugin is self-contained. -->
+
+    <!-- NuGet package metadata -->
+    <PackageId>SmartTemplate.Plugin.MoneyErp</PackageId>
+    <Version>1.0.0</Version>
+    <Description>SmartTemplate plugin that reads object metadata from the Money ERP S5 database and exposes it as template variables for code generation.</Description>
+    <Authors>SmartTemplate</Authors>
+    <PackageTags>smarttemplate;plugin;moneyerp;codegen</PackageTags>
+
+    <!--
+      Copy all NuGet dependency DLLs to the output folder.
+      Needed for local usage (plugins: ./bin/Debug/net10.0/).
+      When installed via `st plugin install`, dependencies are resolved from NuGet directly.
+    -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SmartTemplate.Core\SmartTemplate.Core.csproj" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.1" />
+    <!--
+      SmartTemplate.Core is provided by the host (`st` tool) at runtime.
+      PrivateAssets="all" suppresses it from the NuGet dependency list so consumers
+      don't get a dependency on a package that is not published to NuGet.org.
+    -->
+    <ProjectReference Include="..\..\src\SmartTemplate.Core\SmartTemplate.Core.csproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
   </ItemGroup>
 
 </Project>

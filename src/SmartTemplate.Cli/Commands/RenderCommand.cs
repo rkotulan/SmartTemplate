@@ -83,9 +83,22 @@ public static class RenderCommand
                 var data = await DataMerger.LoadFileAsync(dataFile);
 
                 // Step 2: extract 'plugins' key from data dict (CLI --plugins has priority)
-                string? pluginsDir = cliPluginsDir;
-                if (pluginsDir is null && data.TryGetValue("plugins", out var pluginsVal))
-                    pluginsDir = pluginsVal?.ToString();
+                string? pluginsDir;
+                if (cliPluginsDir is not null)
+                {
+                    pluginsDir = ResolvePluginsPath(cliPluginsDir, baseDir: null);
+                }
+                else if (data.TryGetValue("plugins", out var pluginsVal) && pluginsVal?.ToString() is { } fromYaml)
+                {
+                    var dataDir = dataFile is not null
+                        ? Path.GetDirectoryName(Path.GetFullPath(dataFile))
+                        : null;
+                    pluginsDir = ResolvePluginsPath(fromYaml, baseDir: dataDir);
+                }
+                else
+                {
+                    pluginsDir = null;
+                }
                 data.Remove("plugins");
 
                 // Step 3: interactive prompts (when prompts key exists and not suppressed)
@@ -134,6 +147,34 @@ public static class RenderCommand
         });
 
         return command;
+    }
+
+    /// <summary>
+    /// Resolves the plugins directory path using the following rules:
+    /// <list type="bullet">
+    ///   <item>Absolute path — used as-is.</item>
+    ///   <item>No directory separator (e.g. "MoneyErp") — treated as a named plugin in
+    ///         the user-level global plugins folder: %APPDATA%\SmartTemplate\plugins\&lt;name&gt;\</item>
+    ///   <item>Relative path — resolved against <paramref name="baseDir"/> when provided
+    ///         (i.e. the directory of the data file), otherwise against the current working directory.</item>
+    /// </list>
+    /// </summary>
+    private static string ResolvePluginsPath(string value, string? baseDir)
+    {
+        if (Path.IsPathRooted(value))
+            return value;
+
+        // No separator → global named plugin
+        if (!value.Contains('/') && !value.Contains('\\'))
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SmartTemplate", "plugins", value);
+        }
+
+        // Relative path → anchor to data.yaml dir or CWD
+        var anchor = baseDir ?? Directory.GetCurrentDirectory();
+        return Path.GetFullPath(Path.Combine(anchor, value));
     }
 
     private static async Task RenderSingleFileAsync(
