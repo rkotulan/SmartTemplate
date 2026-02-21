@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet package metadata -->
+    <PackageId>SmartTemplate.Plugin.SqlFile</PackageId>
+    <Version>1.0.0</Version>
+    <Description>SmartTemplate plugin that parses SQL CREATE TABLE scripts and exposes column metadata as template variables for code generation.</Description>
+    <Authors>SmartTemplate</Authors>
+    <PackageTags>smarttemplate;plugin;sql;codegen</PackageTags>
+
+    <!--
+      Copy all NuGet dependency DLLs to the output folder.
+      Needed for local usage (plugins: ./bin/Debug/net10.0/).
+    -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      SmartTemplate.Core is provided by the host (`st` tool) at runtime.
+      PrivateAssets="all" suppresses it from the NuGet dependency list.
+    -->
+    <ProjectReference Include="..\..\src\SmartTemplate.Core\SmartTemplate.Core.csproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

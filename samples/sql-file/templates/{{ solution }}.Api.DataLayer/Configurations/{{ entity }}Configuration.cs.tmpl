@@ -1,0 +1,17 @@
+namespace {{ solution }}.Api.DataLayer.Configurations
+{
+    using Microsoft.EntityFrameworkCore;
+    using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+    using {{ solution }}.Entities;
+
+    public class {{ entity }}Configuration : IEntityTypeConfiguration<{{ entity }}>
+    {
+        public void Configure(EntityTypeBuilder<{{ entity }}> builder)
+        {
+            builder.ToTable("{{ entity }}");
+            builder.HasKey(x => x.Id); {{~ for property in properties }}
+            builder.Property(p => p.{{ property.name }});{{~ end }}
+        }
+    }
+}

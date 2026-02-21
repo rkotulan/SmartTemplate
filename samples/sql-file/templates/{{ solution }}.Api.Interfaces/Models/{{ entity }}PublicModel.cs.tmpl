@@ -1,0 +1,9 @@
+namespace {{ solution }}.Api.Interfaces.Models
+{
+    using System;
+
+    public class {{ entity }}PublicModel
+    { {{~ for property in properties }}
+        public {{ property.type }} {{ property.name }} { get; set; }{{~ end }}
+    }
+}

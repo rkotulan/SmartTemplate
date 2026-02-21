@@ -1,0 +1,42 @@
+# ----------------------------------------------------------------------------
+# SmartTemplate + SqlFile plugin — SQL CREATE TABLE → C# scaffolding
+#
+# Generates: Entity, DTO, Mapper, EF Configuration, Repository, IRepository
+#
+# Usage (run from repository root):
+#   1. Build plugin:
+#        dotnet build plugins/SmartTemplate.Plugin.SqlFile/ -c Debug
+#
+#   2. Render:
+#        st render samples/sql-file/templates/ \
+#                  --data samples/sql-file/data.yaml \
+#                  -o ./out/
+# ----------------------------------------------------------------------------
+
+solution: MyApp
+
+# Folder containing *.sql CREATE TABLE files.
+# Resolved relative to the working directory where `st` is invoked (repo root).
+sql_dir: ./samples/sql-file/sql/
+
+# SQL dialect for C# type mapping: mssql (default) | postgres
+sql_dialect: mssql
+
+# Columns provided by the base entity class — excluded from generated code.
+exclude_columns:
+  - Id
+  - DateOfCreate
+  - DateOfModify
+  - TenantId
+
+# Plugin DLL folder — relative to this data.yaml file.
+plugins: ../../plugins/SmartTemplate.Plugin.SqlFile/bin/Debug/net10.0/
+
+prompts:
+  - name: table
+    label: "Table name (e.g. User, Role, Setting)"
+    type: string
+    default: User
+  - name: entity
+    label: "Entity class name (leave empty to use table name)"
+    type: string

@@ -1,0 +1,23 @@
+namespace {{ solution }}.Api.Features.Mappers
+{
+    using {{ solution }}.Entities;
+    using {{ solution }}.Application.DTOs;
+
+    public static class {{ entity }}Mapper
+    {
+        public static {{ entity }}Dto ToDto(this {{ entity }} entity) => new()
+        { {{~ for property in properties }}
+            {{ property.name }} = entity.{{ property.name }},{{~ end }}
+        };
+
+        public static {{ entity }} ToEntity(this {{ entity }}Dto dto) => new()
+        { {{~ for property in properties }}
+            {{ property.name }} = dto.{{ property.name }},{{~ end }}
+        };
+
+        public static void Apply({{ entity }}Dto dto, {{ entity }} entity)
+        { {{~ for property in properties }}
+            entity.{{ property.name }} = dto.{{ property.name }};{{~ end }}
+        }
+    }
+}

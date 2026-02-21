@@ -1,0 +1,20 @@
+﻿CREATE TABLE [User]
+(
+	[Id]                   INT            IDENTITY (1, 1) NOT NULL,
+    [DateOfCreate]         DATETIME2 (7)  NOT NULL DEFAULT GETUTCDATE(),
+    [DateOfModify]         DATETIME2 (7)  NOT NULL DEFAULT GETUTCDATE(),
+    [TenantId]             INT NOT NULL, 
+    [FirstName]            NVARCHAR (200) NOT NULL,
+    [LastName]             NVARCHAR (200) NOT NULL,    
+    [Email]                NVARCHAR (200)  NOT NULL,
+    [PasswordHash]         NVARCHAR (MAX) NULL,
+    [Confirmed] BIT NOT NULL DEFAULT 0, 
+    [DateOfLastLogin] DATETIME2 (7) NULL,     
+    [InvitationToken] NVARCHAR(100) NULL, 
+    [DateOfLastInvitation] DATETIME2 NULL, 
+    [PasswordResetToken] NVARCHAR(100) NULL, 
+    [DateOfPasswordResetTokenExpiration] DATETIME2 NULL, 
+    [DateOfLastPasswordResetSent] DATETIME2 NULL, 
+    CONSTRAINT [PK_User] PRIMARY KEY CLUSTERED ([Id] ASC), 
+    CONSTRAINT [FK_User_To_Tenant] FOREIGN KEY ([TenantId]) REFERENCES [Tenant] ([Id]),
+)

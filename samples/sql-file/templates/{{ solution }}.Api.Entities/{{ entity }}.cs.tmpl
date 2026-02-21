@@ -1,0 +1,12 @@
+namespace {{ solution }}.Api.Entities
+{
+    using System;
+
+    using {{ solution }}.Entities.Abstractions;
+    using {{ solution }}.Entities.Enum;
+
+    public class {{ entity }} : BaseTenantEntity
+    { {{~ for property in properties }}
+        public {{ property.type }} {{ property.name }} { get; set; }{{~ end }}
+    }
+}

@@ -13,5 +13,6 @@
   <Folder Name="/plugins/">
     <Project Path="plugins/SmartTemplate.Plugin.Sample/SmartTemplate.Plugin.Sample.csproj" />
     <Project Path="plugins/SmartTemplate.Plugin.MoneyErp/SmartTemplate.Plugin.MoneyErp.csproj" />
+    <Project Path="plugins/SmartTemplate.Plugin.SqlFile/SmartTemplate.Plugin.SqlFile.csproj" />
   </Folder>
 </Solution>
