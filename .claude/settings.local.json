@@ -17,7 +17,8 @@
       "Bash(dotnet nuget push:*)",
       "Bash(sqlcmd:*)",
       "Bash(python3:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(dotnet restore SmartTemplate.slnx /nodeReuse:false)"
     ]
   }
 }
