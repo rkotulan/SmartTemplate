@@ -44,6 +44,11 @@ public static class RenderCommand
         Description = "Path to a directory containing plugin assemblies (*.dll)"
     };
 
+    private static readonly Option<bool> StdoutOption = new("--stdout")
+    {
+        Description = "Write rendered output to stdout instead of files"
+    };
+
     public static Command Build()
     {
         var command = new Command("render", "Render a template file or directory")
@@ -54,7 +59,8 @@ public static class RenderCommand
             VarOption,
             ExtOption,
             NoInteractiveOption,
-            PluginsOption
+            PluginsOption,
+            StdoutOption
         };
 
         command.SetAction(async (parseResult, ct) =>
@@ -66,6 +72,7 @@ public static class RenderCommand
             var extension     = parseResult.GetValue(ExtOption)!;
             var noInteractive = parseResult.GetValue(NoInteractiveOption);
             var cliPluginsDir = parseResult.GetValue(PluginsOption);
+            var toStdout      = parseResult.GetValue(StdoutOption);
 
             var engine   = new TemplateEngine();
             var resolver = new OutputResolver(engine);
@@ -105,11 +112,11 @@ public static class RenderCommand
 
                 if (Directory.Exists(input))
                 {
-                    await RenderDirectoryAsync(engine, resolver, input, data, output, extension);
+                    await RenderDirectoryAsync(engine, resolver, input, data, output, extension, toStdout);
                 }
                 else if (File.Exists(input))
                 {
-                    await RenderSingleFileAsync(engine, resolver, input, data, output, outputDir: null);
+                    await RenderSingleFileAsync(engine, resolver, input, data, output, outputDir: null, toStdout);
                 }
                 else
                 {
@@ -135,9 +142,17 @@ public static class RenderCommand
         string inputPath,
         Dictionary<string, object?> data,
         string? cliOutput,
-        string? outputDir)
+        string? outputDir,
+        bool toStdout = false)
     {
-        var rendered   = await engine.RenderFileAsync(inputPath, data);
+        var rendered = await engine.RenderFileAsync(inputPath, data);
+
+        if (toStdout)
+        {
+            await Console.Out.WriteAsync(rendered);
+            return;
+        }
+
         var outputPath = resolver.Resolve(inputPath, data, cliOutput, outputDir);
 
         var dir = Path.GetDirectoryName(outputPath);
@@ -154,7 +169,8 @@ public static class RenderCommand
         string inputDir,
         Dictionary<string, object?> data,
         string? cliOutputDir,
-        string extension)
+        string extension,
+        bool toStdout = false)
     {
         var ext       = extension.StartsWith('.') ? extension : "." + extension;
         var templates = Directory.GetFiles(inputDir, $"*{ext}", SearchOption.AllDirectories);
@@ -177,7 +193,7 @@ public static class RenderCommand
                 _                  => null
             };
 
-            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: effectiveOutputDir);
+            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: effectiveOutputDir, toStdout);
         }
     }
 }
