@@ -1,9 +1,4 @@
 using System.CommandLine;
-using System.Text;
-using SmartTemplate.Core;
-using SmartTemplate.Core.DataLoaders;
-using SmartTemplate.Core.Plugins;
-using TextCopy;
 
 namespace SmartTemplate.Cli.Commands;
 
@@ -73,89 +68,20 @@ public static class RenderCommand
 
         command.SetAction(async (parseResult, ct) =>
         {
-            var input         = parseResult.GetValue(InputArg)!;
-            var dataFile      = parseResult.GetValue(DataOption);
-            var output        = parseResult.GetValue(OutputOption);
-            var vars          = parseResult.GetValue(VarOption) ?? [];
-            var extension     = parseResult.GetValue(ExtOption)!;
-            var noInteractive = parseResult.GetValue(NoInteractiveOption);
-            var cliPluginsDir = parseResult.GetValue(PluginsOption);
-            var toStdout      = parseResult.GetValue(StdoutOption);
-            var toClip        = parseResult.GetValue(ClipOption);
-
-            var engine   = new TemplateEngine();
-            var resolver = new OutputResolver(engine);
-
             try
             {
-                // Step 1: load file data
-                var data = await DataMerger.LoadFileAsync(dataFile);
-
-                // Step 2: extract 'plugins' key from data dict (CLI --plugins has priority)
-                string? pluginsDir;
-                if (cliPluginsDir is not null)
-                {
-                    pluginsDir = ResolvePluginsPath(cliPluginsDir, baseDir: null);
-                }
-                else if (data.TryGetValue("plugins", out var pluginsVal) && pluginsVal?.ToString() is { } fromYaml)
-                {
-                    var dataDir = dataFile is not null
-                        ? Path.GetDirectoryName(Path.GetFullPath(dataFile))
-                        : null;
-                    pluginsDir = ResolvePluginsPath(fromYaml, baseDir: dataDir);
-                }
-                else
-                {
-                    pluginsDir = null;
-                }
-                data.Remove("plugins");
-
-                // Step 3: interactive prompts (when prompts key exists and not suppressed)
-                var defs = InteractivePrompter.ExtractPrompts(data);
-                if (defs.Count > 0 && !noInteractive)
-                {
-                    await Console.Out.WriteLineAsync("Zadejte hodnoty proměnných:");
-                    var prompted = await InteractivePrompter.PromptAsync(defs);
-                    foreach (var kv in prompted)
-                        data[kv.Key] = kv.Value;
-                }
-
-                // Step 4: CLI --var overrides (highest priority)
-                var cliData = CliVarParser.Parse(vars);
-                foreach (var kv in cliData)
-                    data[kv.Key] = kv.Value;
-
-                // Step 5: load and apply plugins (after all data is merged — plugins have full context)
-                if (pluginsDir is not null)
-                {
-                    var plugins = await PluginLoader.LoadPluginsAsync(pluginsDir, ct);
-                    data = await PluginLoader.ApplyPluginsAsync(plugins, data, ct);
-                }
-
-                // Clipboard accumulator — non-null when --clip is requested
-                StringBuilder? clipAccumulator = toClip ? new StringBuilder() : null;
-
-                if (Directory.Exists(input))
-                {
-                    await RenderDirectoryAsync(engine, resolver, input, data, output, extension, toStdout, clipAccumulator);
-                }
-                else if (File.Exists(input))
-                {
-                    await RenderSingleFileAsync(engine, resolver, input, data, output, outputDir: null, toStdout, clipAccumulator);
-                }
-                else
-                {
-                    await Console.Error.WriteLineAsync($"Error: '{input}' does not exist.");
-                    return 1;
-                }
-
-                if (clipAccumulator is not null)
-                {
-                    await ClipboardService.SetTextAsync(clipAccumulator.ToString(), ct);
-                    await Console.Error.WriteLineAsync("Copied to clipboard.");
-                }
-
-                return 0;
+                return await RenderExecutor.ExecuteAsync(
+                    input:         parseResult.GetValue(InputArg)!,
+                    dataFile:      parseResult.GetValue(DataOption),
+                    output:        parseResult.GetValue(OutputOption),
+                    vars:          parseResult.GetValue(VarOption) ?? [],
+                    extension:     parseResult.GetValue(ExtOption)!,
+                    noInteractive: parseResult.GetValue(NoInteractiveOption),
+                    cliPluginsDir: parseResult.GetValue(PluginsOption),
+                    toStdout:      parseResult.GetValue(StdoutOption),
+                    toClip:        parseResult.GetValue(ClipOption),
+                    workingDir:    null,
+                    ct);
             }
             catch (Exception ex)
             {
@@ -165,119 +91,5 @@ public static class RenderCommand
         });
 
         return command;
-    }
-
-    /// <summary>
-    /// Resolves the plugins directory path using the following rules:
-    /// <list type="bullet">
-    ///   <item>Absolute path — used as-is.</item>
-    ///   <item>No directory separator (e.g. "MoneyErp") — treated as a named plugin in
-    ///         the user-level global plugins folder: %APPDATA%\SmartTemplate\plugins\&lt;name&gt;\</item>
-    ///   <item>Relative path — resolved against <paramref name="baseDir"/> when provided
-    ///         (i.e. the directory of the data file), otherwise against the current working directory.</item>
-    /// </list>
-    /// </summary>
-    private static string ResolvePluginsPath(string value, string? baseDir)
-    {
-        if (Path.IsPathRooted(value))
-            return value;
-
-        // No separator → global named plugin
-        if (!value.Contains('/') && !value.Contains('\\'))
-        {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SmartTemplate", "plugins", value);
-        }
-
-        // Relative path → anchor to data.yaml dir or CWD
-        var anchor = baseDir ?? Directory.GetCurrentDirectory();
-        return Path.GetFullPath(Path.Combine(anchor, value));
-    }
-
-    private static async Task RenderSingleFileAsync(
-        TemplateEngine engine,
-        OutputResolver resolver,
-        string inputPath,
-        Dictionary<string, object?> data,
-        string? cliOutput,
-        string? outputDir,
-        bool toStdout = false,
-        StringBuilder? clipAccumulator = null)
-    {
-        var rendered = await engine.RenderFileAsync(inputPath, data);
-
-        clipAccumulator?.Append(rendered);
-
-        if (toStdout)
-        {
-            await Console.Out.WriteAsync(rendered);
-            return;
-        }
-
-        var outputPath = resolver.Resolve(inputPath, data, cliOutput, outputDir);
-
-        var dir = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrEmpty(dir))
-            Directory.CreateDirectory(dir);
-
-        await File.WriteAllTextAsync(outputPath, rendered);
-        Console.WriteLine($"  {inputPath} -> {outputPath}");
-    }
-
-    private static async Task RenderDirectoryAsync(
-        TemplateEngine engine,
-        OutputResolver resolver,
-        string inputDir,
-        Dictionary<string, object?> data,
-        string? cliOutputDir,
-        string extension,
-        bool toStdout = false,
-        StringBuilder? clipAccumulator = null)
-    {
-        // Render the output directory as a Scriban template so that expressions like
-        // "...\{{ entity }}\..." resolve to the actual value.
-        // Also strip any stray trailing quote that Windows shell may inject when the
-        // path ends with a backslash inside double quotes (e.g. "path\").
-        if (cliOutputDir is not null)
-        {
-            cliOutputDir = cliOutputDir.TrimEnd('"');
-            cliOutputDir = engine.Render(cliOutputDir, data);
-        }
-
-        var ext       = extension.StartsWith('.') ? extension : "." + extension;
-        var templates = Directory.GetFiles(inputDir, $"*{ext}", SearchOption.AllDirectories);
-
-        if (templates.Length == 0)
-        {
-            Console.WriteLine($"No *{ext} files found in '{inputDir}'.");
-            return;
-        }
-
-        foreach (var tmplPath in templates)
-        {
-            // Preserve subdirectory structure from the template directory.
-            // Directory name segments that contain Scriban expressions are rendered
-            // so that e.g. a folder named "{{ entity }}" resolves to "Smlouva".
-            var relDir = Path.GetDirectoryName(Path.GetRelativePath(inputDir, tmplPath)) ?? "";
-            if (relDir.Length > 0 && relDir.Contains("{{"))
-            {
-                var sep = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
-                relDir = string.Join(
-                    Path.DirectorySeparatorChar,
-                    relDir.Split(sep, StringSplitOptions.RemoveEmptyEntries)
-                          .Select(seg => seg.Contains("{{") ? engine.Render(seg, data) : seg));
-            }
-
-            var effectiveOutputDir = (cliOutputDir, relDir) switch
-            {
-                (not null, not "") => Path.Combine(cliOutputDir, relDir),
-                (not null, _)      => cliOutputDir,
-                (_, not "")        => relDir,
-                _                  => null
-            };
-
-            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: effectiveOutputDir, toStdout, clipAccumulator);
-        }
     }
 }

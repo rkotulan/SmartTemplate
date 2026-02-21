@@ -8,7 +8,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>st</ToolCommandName>
     <PackageId>SmartTemplate</PackageId>
-    <Version>1.4.0</Version>
+    <Version>1.5.0</Version>
     <Description>Jinja2-like CLI template generator using Scriban</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>

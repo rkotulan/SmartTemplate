@@ -3,6 +3,7 @@ using SmartTemplate.Cli.Commands;
 
 var rootCommand = new RootCommand("SmartTemplate — Jinja2-like CLI template generator powered by Scriban");
 rootCommand.Subcommands.Add(RenderCommand.Build());
+rootCommand.Subcommands.Add(RunCommand.Build());
 rootCommand.Subcommands.Add(PluginCommand.Build());
 
 return await rootCommand.Parse(args).InvokeAsync();

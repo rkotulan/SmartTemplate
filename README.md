@@ -46,6 +46,17 @@ st render <input> [--data <file>] [-o <output>] [--var key=value]...
 | `--stdout` | Write rendered output to stdout instead of files |
 | `--clip` | Copy rendered output to clipboard (combinable with `--stdout`) |
 
+## Package bundles
+
+Run one of several named template sets from a single `packages.yaml`:
+
+```bash
+st run           # interactive selection
+st run 3d        # run package by ID directly
+```
+
+See [docs/packages.md](docs/packages.md) for the `packages.yaml` format.
+
 ## Plugin commands
 
 ```
@@ -60,6 +71,7 @@ st plugin uninstall <package>
 - [Templates — syntax, date functions, directory mode, output resolution](docs/templates.md)
 - [Interactive prompts — types, date formats, examples](docs/prompts.md)
 - [Plugins — NuGet install, update, local plugins, writing your own](docs/plugins.md)
+- [Package bundles — packages.yaml format, st run usage](docs/packages.md)
 
 ## Requirements
 
