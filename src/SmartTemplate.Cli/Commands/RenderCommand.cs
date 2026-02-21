@@ -235,6 +235,16 @@ public static class RenderCommand
         bool toStdout = false,
         StringBuilder? clipAccumulator = null)
     {
+        // Render the output directory as a Scriban template so that expressions like
+        // "...\{{ entity }}\..." resolve to the actual value.
+        // Also strip any stray trailing quote that Windows shell may inject when the
+        // path ends with a backslash inside double quotes (e.g. "path\").
+        if (cliOutputDir is not null)
+        {
+            cliOutputDir = cliOutputDir.TrimEnd('"');
+            cliOutputDir = engine.Render(cliOutputDir, data);
+        }
+
         var ext       = extension.StartsWith('.') ? extension : "." + extension;
         var templates = Directory.GetFiles(inputDir, $"*{ext}", SearchOption.AllDirectories);
 
@@ -246,8 +256,19 @@ public static class RenderCommand
 
         foreach (var tmplPath in templates)
         {
-            // Preserve subdirectory structure from the template directory
+            // Preserve subdirectory structure from the template directory.
+            // Directory name segments that contain Scriban expressions are rendered
+            // so that e.g. a folder named "{{ entity }}" resolves to "Smlouva".
             var relDir = Path.GetDirectoryName(Path.GetRelativePath(inputDir, tmplPath)) ?? "";
+            if (relDir.Length > 0 && relDir.Contains("{{"))
+            {
+                var sep = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
+                relDir = string.Join(
+                    Path.DirectorySeparatorChar,
+                    relDir.Split(sep, StringSplitOptions.RemoveEmptyEntries)
+                          .Select(seg => seg.Contains("{{") ? engine.Render(seg, data) : seg));
+            }
+
             var effectiveOutputDir = (cliOutputDir, relDir) switch
             {
                 (not null, not "") => Path.Combine(cliOutputDir, relDir),

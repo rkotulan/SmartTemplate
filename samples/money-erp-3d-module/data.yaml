@@ -1,0 +1,19 @@
+# ----------------------------------------------------------------------------
+# SmartTemplate — MoneyERP 3D module scaffold
+# ----------------------------------------------------------------------------
+# Použití (spouštět z kořene repozitáře SmartTemplate):
+#
+#   st render samples/money-erp-3d-module/templates/ \
+#             --data samples/money-erp-3d-module/data.yaml \
+#             -o "x:\Dev\Repo\k-system\MoneyERP\Extensions\{{ solution }}\Src\Modules3D\"
+# ----------------------------------------------------------------------------
+
+prompts:
+  - name: solution
+    label: "Název solution / modulu (PascalCase, bez mezer)"
+    type: string
+    default: MyModule
+  - name: solution_id
+    label: "Solution ID (GUID)"
+    type: string
+    default: "00000000-0000-0000-0000-000000000000"

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>S5KSY.Modules3D.{{ solution }}UI</RootNamespace>
+    <AssemblyName>S5KSY_{{ solution }}UI</AssemblyName>
+
+    <IncludeMoneySdkUi>true</IncludeMoneySdkUi>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\{{ solution }}\{{ solution }}.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>
