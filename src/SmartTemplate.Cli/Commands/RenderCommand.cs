@@ -1,7 +1,9 @@
 using System.CommandLine;
+using System.Text;
 using SmartTemplate.Core;
 using SmartTemplate.Core.DataLoaders;
 using SmartTemplate.Core.Plugins;
+using TextCopy;
 
 namespace SmartTemplate.Cli.Commands;
 
@@ -49,6 +51,11 @@ public static class RenderCommand
         Description = "Write rendered output to stdout instead of files"
     };
 
+    private static readonly Option<bool> ClipOption = new("--clip")
+    {
+        Description = "Copy rendered output to clipboard (can be combined with --stdout)"
+    };
+
     public static Command Build()
     {
         var command = new Command("render", "Render a template file or directory")
@@ -60,7 +67,8 @@ public static class RenderCommand
             ExtOption,
             NoInteractiveOption,
             PluginsOption,
-            StdoutOption
+            StdoutOption,
+            ClipOption
         };
 
         command.SetAction(async (parseResult, ct) =>
@@ -73,6 +81,7 @@ public static class RenderCommand
             var noInteractive = parseResult.GetValue(NoInteractiveOption);
             var cliPluginsDir = parseResult.GetValue(PluginsOption);
             var toStdout      = parseResult.GetValue(StdoutOption);
+            var toClip        = parseResult.GetValue(ClipOption);
 
             var engine   = new TemplateEngine();
             var resolver = new OutputResolver(engine);
@@ -123,18 +132,27 @@ public static class RenderCommand
                     data = await PluginLoader.ApplyPluginsAsync(plugins, data, ct);
                 }
 
+                // Clipboard accumulator — non-null when --clip is requested
+                StringBuilder? clipAccumulator = toClip ? new StringBuilder() : null;
+
                 if (Directory.Exists(input))
                 {
-                    await RenderDirectoryAsync(engine, resolver, input, data, output, extension, toStdout);
+                    await RenderDirectoryAsync(engine, resolver, input, data, output, extension, toStdout, clipAccumulator);
                 }
                 else if (File.Exists(input))
                 {
-                    await RenderSingleFileAsync(engine, resolver, input, data, output, outputDir: null, toStdout);
+                    await RenderSingleFileAsync(engine, resolver, input, data, output, outputDir: null, toStdout, clipAccumulator);
                 }
                 else
                 {
                     await Console.Error.WriteLineAsync($"Error: '{input}' does not exist.");
                     return 1;
+                }
+
+                if (clipAccumulator is not null)
+                {
+                    await ClipboardService.SetTextAsync(clipAccumulator.ToString(), ct);
+                    await Console.Error.WriteLineAsync("Copied to clipboard.");
                 }
 
                 return 0;
@@ -184,9 +202,12 @@ public static class RenderCommand
         Dictionary<string, object?> data,
         string? cliOutput,
         string? outputDir,
-        bool toStdout = false)
+        bool toStdout = false,
+        StringBuilder? clipAccumulator = null)
     {
         var rendered = await engine.RenderFileAsync(inputPath, data);
+
+        clipAccumulator?.Append(rendered);
 
         if (toStdout)
         {
@@ -211,7 +232,8 @@ public static class RenderCommand
         Dictionary<string, object?> data,
         string? cliOutputDir,
         string extension,
-        bool toStdout = false)
+        bool toStdout = false,
+        StringBuilder? clipAccumulator = null)
     {
         var ext       = extension.StartsWith('.') ? extension : "." + extension;
         var templates = Directory.GetFiles(inputDir, $"*{ext}", SearchOption.AllDirectories);
@@ -234,7 +256,7 @@ public static class RenderCommand
                 _                  => null
             };
 
-            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: effectiveOutputDir, toStdout);
+            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: effectiveOutputDir, toStdout, clipAccumulator);
         }
     }
 }
