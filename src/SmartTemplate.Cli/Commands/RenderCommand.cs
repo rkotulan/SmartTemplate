@@ -1,6 +1,7 @@
 using System.CommandLine;
 using SmartTemplate.Core;
 using SmartTemplate.Core.DataLoaders;
+using SmartTemplate.Core.Plugins;
 
 namespace SmartTemplate.Cli.Commands;
 
@@ -38,6 +39,11 @@ public static class RenderCommand
         Description = "Skip interactive prompts defined in the data file (for CI/scripting)"
     };
 
+    private static readonly Option<string?> PluginsOption = new("--plugins")
+    {
+        Description = "Path to a directory containing plugin assemblies (*.dll)"
+    };
+
     public static Command Build()
     {
         var command = new Command("render", "Render a template file or directory")
@@ -47,7 +53,8 @@ public static class RenderCommand
             OutputOption,
             VarOption,
             ExtOption,
-            NoInteractiveOption
+            NoInteractiveOption,
+            PluginsOption
         };
 
         command.SetAction(async (parseResult, ct) =>
@@ -58,6 +65,7 @@ public static class RenderCommand
             var vars          = parseResult.GetValue(VarOption) ?? [];
             var extension     = parseResult.GetValue(ExtOption)!;
             var noInteractive = parseResult.GetValue(NoInteractiveOption);
+            var cliPluginsDir = parseResult.GetValue(PluginsOption);
 
             var engine   = new TemplateEngine();
             var resolver = new OutputResolver(engine);
@@ -67,7 +75,13 @@ public static class RenderCommand
                 // Step 1: load file data
                 var data = await DataMerger.LoadFileAsync(dataFile);
 
-                // Step 2: interactive prompts (when prompts key exists and not suppressed)
+                // Step 2: extract 'plugins' key from data dict (CLI --plugins has priority)
+                string? pluginsDir = cliPluginsDir;
+                if (pluginsDir is null && data.TryGetValue("plugins", out var pluginsVal))
+                    pluginsDir = pluginsVal?.ToString();
+                data.Remove("plugins");
+
+                // Step 3: interactive prompts (when prompts key exists and not suppressed)
                 var defs = InteractivePrompter.ExtractPrompts(data);
                 if (defs.Count > 0 && !noInteractive)
                 {
@@ -77,10 +91,17 @@ public static class RenderCommand
                         data[kv.Key] = kv.Value;
                 }
 
-                // Step 3: CLI --var overrides (highest priority)
+                // Step 4: CLI --var overrides (highest priority)
                 var cliData = CliVarParser.Parse(vars);
                 foreach (var kv in cliData)
                     data[kv.Key] = kv.Value;
+
+                // Step 5: load and apply plugins (after all data is merged — plugins have full context)
+                if (pluginsDir is not null)
+                {
+                    var plugins = await PluginLoader.LoadPluginsAsync(pluginsDir, ct);
+                    data = await PluginLoader.ApplyPluginsAsync(plugins, data, ct);
+                }
 
                 if (Directory.Exists(input))
                 {
@@ -135,7 +156,7 @@ public static class RenderCommand
         string? cliOutputDir,
         string extension)
     {
-        var ext      = extension.StartsWith('.') ? extension : "." + extension;
+        var ext       = extension.StartsWith('.') ? extension : "." + extension;
         var templates = Directory.GetFiles(inputDir, $"*{ext}", SearchOption.AllDirectories);
 
         if (templates.Length == 0)
@@ -146,8 +167,17 @@ public static class RenderCommand
 
         foreach (var tmplPath in templates)
         {
-            // Per-file data may override "output", so resolve individually
-            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: cliOutputDir);
+            // Preserve subdirectory structure from the template directory
+            var relDir = Path.GetDirectoryName(Path.GetRelativePath(inputDir, tmplPath)) ?? "";
+            var effectiveOutputDir = (cliOutputDir, relDir) switch
+            {
+                (not null, not "") => Path.Combine(cliOutputDir, relDir),
+                (not null, _)      => cliOutputDir,
+                (_, not "")        => relDir,
+                _                  => null
+            };
+
+            await RenderSingleFileAsync(engine, resolver, tmplPath, data, cliOutput: null, outputDir: effectiveOutputDir);
         }
     }
 }

@@ -32,7 +32,7 @@ st render template.txt --var name=World -o hello.txt
 ## Usage
 
 ```
-st render <input> [--data <file>] [-o <output>] [--var key=value]... [--ext .tmpl] [--no-interactive]
+st render <input> [--data <file>] [-o <output>] [--var key=value]... [--ext .tmpl] [--no-interactive] [--plugins <dir>]
 ```
 
 | Argument / Option | Description |
@@ -43,6 +43,7 @@ st render <input> [--data <file>] [-o <output>] [--var key=value]... [--ext .tmp
 | `--var key=value` | Inline variable overrides (repeatable, highest priority) |
 | `--ext` | Template extension when scanning a directory (default: `.tmpl`) |
 | `--no-interactive` | Skip interactive prompts — for CI / scripting |
+| `--plugins` | Directory containing plugin assemblies (`*.dll`) |
 
 ## Data files
 
@@ -211,6 +212,67 @@ st render ./templates/ --data data.yaml -o ./output/
 Each template's output path is resolved independently. Template filenames support
 Scriban expressions — name your files like `{{ krok }}.md.tmpl` to get dynamic output names.
 
+### Subdirectory preservation
+
+Subdirectory structure inside the template folder is mirrored to the output:
+
+```
+templates/
+  Controllers/{{ entity }}Controller.cs.tmpl
+  Dto/{{ entity }}Dto.cs.tmpl
+```
+
+```bash
+st render templates/ --data data.yaml -o ./src/
+# → src/Controllers/UserController.cs
+# → src/Dto/UserDto.cs
+```
+
+## Plugin system
+
+Plugins are .NET class libraries that enrich the data dictionary before rendering.
+They run after all data sources are merged (file → prompts → `--var`), giving them the full context.
+
+### Using plugins
+
+```bash
+st render templates/ --data data.yaml --plugins ./plugins/
+```
+
+You can also specify the plugins directory in your data file (CLI `--plugins` takes priority):
+
+```yaml
+# data.yaml
+plugins: ./plugins/
+name: Alice
+```
+
+### Writing a plugin
+
+1. Create a .NET class library that references `SmartTemplate.Core`.
+2. Implement `IPlugin`:
+
+```csharp
+using SmartTemplate.Core.Plugins;
+
+public class MyPlugin : IPlugin
+{
+    public string Name => "MyPlugin";
+
+    public Task<Dictionary<string, object?>> EnrichAsync(
+        Dictionary<string, object?> data,
+        CancellationToken cancellationToken = default)
+    {
+        data["generated_at"] = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        return Task.FromResult(data);
+    }
+}
+```
+
+3. Build and copy the resulting `.dll` into your plugins directory.
+
+Plugin load failures are reported as warnings to stderr — other plugins continue loading.
+
 ## Merge order
 
 Later sources overwrite earlier ones:
@@ -218,6 +280,7 @@ Later sources overwrite earlier ones:
 1. YAML / JSON data file
 2. Interactive prompt values
 3. `--var` CLI overrides
+4. Plugin `EnrichAsync` output (applied in load order)
 
 ## Build & test
 
