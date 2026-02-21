@@ -55,7 +55,10 @@ st run           # interactive selection
 st run 3d        # run package by ID directly
 ```
 
-See [docs/packages.md](docs/packages.md) for the `packages.yaml` format.
+Place `packages.yaml` inside a `.st/` subdirectory at the project root and call `st run` from any subfolder — SmartTemplate walks up the directory tree to find it automatically.
+When `output` is not set in a package definition, rendered files are written to the directory where `st run` was invoked.
+
+See [docs/packages.md](docs/packages.md) for the full `packages.yaml` reference.
 
 ## Plugin commands
 

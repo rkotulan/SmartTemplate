@@ -27,7 +27,8 @@ internal static class RenderExecutor
         bool toStdout,
         bool toClip,
         string? workingDir,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? defaultOutputDir = null)
     {
         // Resolve relative paths against workingDir when provided.
         // output may contain Scriban expressions (e.g. "path/{{ solution }}/") — GetFullPath
@@ -83,11 +84,13 @@ internal static class RenderExecutor
 
         if (Directory.Exists(input))
         {
-            await RenderDirectoryAsync(engine, resolver, input, data, output, extension, toStdout, clipAccumulator);
+            await RenderDirectoryAsync(engine, resolver, input, data, output ?? defaultOutputDir, extension, toStdout, clipAccumulator);
         }
         else if (File.Exists(input))
         {
-            await RenderSingleFileAsync(engine, resolver, input, data, output, outputDir: null, toStdout, clipAccumulator);
+            await RenderSingleFileAsync(engine, resolver, input, data, output,
+                outputDir: output is null ? defaultOutputDir : null,
+                toStdout, clipAccumulator);
         }
         else
         {

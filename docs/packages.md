@@ -27,26 +27,37 @@ packages:
 | `name` | no | Human-readable label shown in the interactive menu |
 | `data` | no | YAML/JSON data file path |
 | `templates` | yes | Template file or directory path |
-| `output` | no | Output file or directory (supports Scriban expressions) |
+| `output` | no | Output file or directory (supports Scriban expressions). When omitted, files are written to the directory where `st run` was invoked. |
 | `stdout` | no | Write to stdout instead of files (default: `false`) |
 | `clip` | no | Copy output to clipboard (default: `false`) |
 | `no_interactive` | no | Skip prompts — for CI/scripting (default: `false`) |
 | `plugins` | no | Plugin directory or named global plugin |
 | `vars` | no | Additional `key=value` overrides (list) |
 
-All paths (`data`, `templates`, `output`) are relative to the directory containing `packages.yaml`.
+Paths `data` and `templates` are relative to the directory containing `packages.yaml`.
+The `output` path (when set) is also relative to `packages.yaml`; when omitted, output goes to the **invocation directory** — the working directory from which `st run` was called.
+
+## Config file discovery
+
+When `--config` is not specified, `st run` searches for `packages.yaml` in this order:
+
+1. `packages.yaml` in the **current directory** (backward-compatible fast path)
+2. `.st/packages.yaml` in the **current directory**
+3. `.st/packages.yaml` in the **parent directory** — keeps walking up until found or the filesystem root is reached
+
+This means you can place your `packages.yaml` inside a `.st/` subdirectory anywhere in the project tree and invoke `st run` from any subdirectory of the project — it will find the config automatically.
 
 ## Usage
 
 ```bash
-# Interactive selection
+# Interactive selection (auto-discovers packages.yaml / .st/packages.yaml)
 st run
 
 # Run a specific package directly
 st run 3d
 st run fr
 
-# Use a different config file
+# Explicit config file
 st run --config path/to/packages.yaml
 st run 3d --config path/to/packages.yaml
 ```
@@ -57,7 +68,8 @@ st run 3d --config path/to/packages.yaml
 Available packages:
   1) 3D Module Generator  [3d]
   2) FillFormRelations  [fr]
-Select package (1-2): 1
+  3) Exit
+Select package (1-3): 1
 
 Zadejte hodnoty proměnných:
 Solution name [MyModule]: OrderModule
@@ -66,21 +78,30 @@ Solution name [MyModule]: OrderModule
 
 ## Recommended folder layout
 
+Store your templates and config in a `.st/` subdirectory at the project root:
+
 ```
-.st/
-  packages.yaml
-  3d-data.yaml
-  fr-data.yaml
-  templates/
-    3d/
-      {{ solution }}/
-        {{ solution }}.csproj.tmpl
-    fr/
-      FillFormRelations.cs.tmpl
+MyProject/
+  src/
+  tests/
+  .st/
+    packages.yaml
+    3d-data.yaml
+    fr-data.yaml
+    templates/
+      3d/
+        {{ solution }}/
+          {{ solution }}.csproj.tmpl
+      fr/
+        FillFormRelations.cs.tmpl
 ```
 
-From the `.st/` folder simply run:
+You can invoke `st run` from anywhere inside `MyProject/` — even from a deeply nested subdirectory — and SmartTemplate will walk up and find `.st/packages.yaml`.
+When no `output` is set in a package definition the rendered files land in the directory you were in when you ran `st run`, not in `.st/`.
 
 ```bash
-st run
+# From any subdirectory of the project:
+cd MyProject/src/SomeModule
+st run          # finds MyProject/.st/packages.yaml, writes output to MyProject/src/SomeModule/
+st run 3d       # same, runs the '3d' package directly
 ```

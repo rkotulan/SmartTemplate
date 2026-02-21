@@ -7,6 +7,7 @@ namespace SmartTemplate.Cli.Commands;
 public static class RunCommand
 {
     private const string DefaultConfig = "packages.yaml";
+    private const string StDir         = ".st";
 
     private static readonly Argument<string?> PackageArg = new("package")
     {
@@ -14,10 +15,11 @@ public static class RunCommand
         Arity = ArgumentArity.ZeroOrOne
     };
 
-    private static readonly Option<string> ConfigOption = new("--config")
+    private static readonly Option<string?> ConfigOption = new("--config")
     {
-        Description = $"Path to the packages config file (default: {DefaultConfig})",
-        DefaultValueFactory = _ => DefaultConfig
+        Description = $"Path to the packages config file. " +
+                      $"When omitted, searches for '{DefaultConfig}' in the current directory, " +
+                      $"then for '.st/{DefaultConfig}' walking up the directory tree."
     };
 
     public static Command Build()
@@ -30,12 +32,20 @@ public static class RunCommand
 
         cmd.SetAction(async (parseResult, ct) =>
         {
-            var packageId  = parseResult.GetValue(PackageArg);
-            var configPath = parseResult.GetValue(ConfigOption)!;
+            var packageId      = parseResult.GetValue(PackageArg);
+            var explicitConfig = parseResult.GetValue(ConfigOption);
+            var invocationCwd  = Directory.GetCurrentDirectory();
 
-            if (!File.Exists(configPath))
+            var configPath = FindConfig(explicitConfig);
+
+            if (configPath is null)
             {
-                await Console.Error.WriteLineAsync($"Error: '{configPath}' not found. Create a packages.yaml in the current directory.");
+                if (explicitConfig is not null)
+                    await Console.Error.WriteLineAsync($"Error: '{explicitConfig}' not found.");
+                else
+                    await Console.Error.WriteLineAsync(
+                        $"Error: '{DefaultConfig}' not found in current directory " +
+                        $"and no '.st/{DefaultConfig}' found in the directory tree.");
                 return 1;
             }
 
@@ -78,20 +88,25 @@ public static class RunCommand
                 if (selected is null) return 0;
             }
 
+            // When no output path is defined in the package, fall back to the directory
+            // where the user invoked 'st run' (not the config file's directory).
+            var defaultOutputDir = string.IsNullOrWhiteSpace(selected.Output) ? invocationCwd : null;
+
             try
             {
                 return await RenderExecutor.ExecuteAsync(
-                    input:         selected.Templates,
-                    dataFile:      selected.Data,
-                    output:        selected.Output,
-                    vars:          selected.Vars?.ToArray() ?? [],
-                    extension:     ".tmpl",
-                    noInteractive: selected.NoInteractive,
-                    cliPluginsDir: selected.Plugins,
-                    toStdout:      selected.Stdout,
-                    toClip:        selected.Clip,
-                    workingDir:    configDir,
-                    ct);
+                    input:            selected.Templates,
+                    dataFile:         selected.Data,
+                    output:           selected.Output,
+                    vars:             selected.Vars?.ToArray() ?? [],
+                    extension:        ".tmpl",
+                    noInteractive:    selected.NoInteractive,
+                    cliPluginsDir:    selected.Plugins,
+                    toStdout:         selected.Stdout,
+                    toClip:           selected.Clip,
+                    workingDir:       configDir,
+                    ct,
+                    defaultOutputDir: defaultOutputDir);
             }
             catch (Exception ex)
             {
@@ -101,6 +116,35 @@ public static class RunCommand
         });
 
         return cmd;
+    }
+
+    /// <summary>
+    /// Resolves the config file path.
+    /// If <paramref name="explicitPath"/> is provided, returns it only if the file exists.
+    /// Otherwise searches for <c>packages.yaml</c> in the current directory first,
+    /// then walks up the directory tree looking for a <c>.st/packages.yaml</c> at each level.
+    /// </summary>
+    private static string? FindConfig(string? explicitPath)
+    {
+        if (explicitPath is not null)
+            return File.Exists(explicitPath) ? Path.GetFullPath(explicitPath) : null;
+
+        // 1. packages.yaml in the current directory (backward-compatible fast path)
+        if (File.Exists(DefaultConfig))
+            return Path.GetFullPath(DefaultConfig);
+
+        // 2. Walk up the tree: look for .st/packages.yaml at each level
+        var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, StDir, DefaultConfig);
+            if (File.Exists(candidate))
+                return candidate;
+
+            dir = dir.Parent;
+        }
+
+        return null;
     }
 
     private static async Task<PackageDefinition?> PromptPackageAsync(List<PackageDefinition> packages)
