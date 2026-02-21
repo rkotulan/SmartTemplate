@@ -23,7 +23,7 @@ SmartTemplate uses [Scriban](https://github.com/scriban/scriban) syntax.
 
 The output path is resolved in this order (first match wins):
 
-1. **CLI `-o`** — explicit path or template string
+1. **CLI `-o`** — explicit path or template string (rendered as Scriban)
 2. **`output` key in the data file** — template string applied to every file
 3. **Template filename itself** — strip `.tmpl`, render the rest as a template
 
@@ -43,16 +43,34 @@ Render all `*.tmpl` files in a folder at once:
 st render ./templates/ --data data.yaml -o ./output/
 ```
 
-Subdirectory structure is mirrored to the output:
+Subdirectory structure is mirrored to the output. Both directory names and the `-o` path
+support Scriban expressions — they are rendered before the output path is constructed:
 
 ```
 templates/
-  Controllers/{{ entity }}Controller.cs.tmpl
-  Dto/{{ entity }}Dto.cs.tmpl
+  {{ solution }}/
+    {{ solution }}.csproj.tmpl
+  {{ solution }}UI/
+    {{ solution }}UI.csproj.tmpl
 ```
 
 ```bash
-st render templates/ --data data.yaml -o ./src/
-# → src/Controllers/UserController.cs
-# → src/Dto/UserDto.cs
+st render templates/ --data data.yaml -o ".\Extensions\{{ solution }}\Src\"
+# → .\Extensions\MyModule\Src\MyModule\MyModule.csproj
+# → .\Extensions\MyModule\Src\MyModuleUI\MyModuleUI.csproj
 ```
+
+> **Windows note:** avoid ending the `-o` path with `\"` — the backslash escapes the closing
+> quote and produces a parse error. Use a path without a trailing separator, or end with `\\.`.
+
+## Output to stdout or clipboard
+
+```bash
+st render template.txt --data data.yaml --stdout        # print to stdout
+st render template.txt --data data.yaml --clip          # copy to clipboard
+st render template.txt --data data.yaml --stdout --clip # both
+```
+
+In directory mode all rendered files are concatenated in `--stdout` / `--clip` output.
+A confirmation message (`Copied to clipboard.`) is written to stderr so it does not
+pollute piped output.

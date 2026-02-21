@@ -30,6 +30,7 @@ public static class PluginCommand
     {
         var cmd = new Command("plugin", "Manage SmartTemplate plugins");
         cmd.Subcommands.Add(BuildInstall());
+        cmd.Subcommands.Add(BuildUpdate());
         cmd.Subcommands.Add(BuildList());
         cmd.Subcommands.Add(BuildUninstall());
         return cmd;
@@ -197,6 +198,67 @@ public static class PluginCommand
                 new PackageIdentity(dep.Id, bestVer),
                 tfm, ridRoots, installDir, installed, ct);
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // update
+    // -------------------------------------------------------------------------
+
+    private static Command BuildUpdate()
+    {
+        var packageArg    = new Argument<string?>("package")  { Description = "Plugin package ID to update (omit to update all)", Arity = ArgumentArity.ZeroOrOne };
+        var sourceOpt     = new Option<string?>("--source")   { Description = $"NuGet source URL (default: {DefaultSource})" };
+        var prereleaseOpt = new Option<bool>("--prerelease")  { Description = "Allow pre-release versions" };
+
+        var cmd = new Command("update", "Update one or all installed plugins to the latest version")
+            { packageArg, sourceOpt, prereleaseOpt };
+
+        cmd.SetAction(async (parseResult, ct) =>
+        {
+            var packageId  = parseResult.GetValue(packageArg);
+            var source     = parseResult.GetValue(sourceOpt) ?? DefaultSource;
+            var prerelease = parseResult.GetValue(prereleaseOpt);
+
+            var baseDir = GlobalPluginsBase;
+            if (!Directory.Exists(baseDir) || Directory.GetDirectories(baseDir).Length == 0)
+            {
+                await Console.Out.WriteLineAsync("No plugins installed.");
+                return 0;
+            }
+
+            var toUpdate = packageId is not null
+                ? [packageId]
+                : Directory.GetDirectories(baseDir).Select(Path.GetFileName).ToArray();
+
+            var errors = 0;
+            foreach (var id in toUpdate)
+            {
+                if (id is null) continue;
+                var installDir = Path.Combine(baseDir, id);
+                if (!Directory.Exists(installDir))
+                {
+                    await Console.Error.WriteLineAsync($"Plugin '{id}' is not installed.");
+                    errors++;
+                    continue;
+                }
+
+                try
+                {
+                    // Remove old files so renamed/removed dependencies don't linger
+                    Directory.Delete(installDir, recursive: true);
+                    await InstallAsync(id, version: null, source, prerelease, ct);
+                }
+                catch (Exception ex)
+                {
+                    await Console.Error.WriteLineAsync($"Error updating '{id}': {ex.Message}");
+                    errors++;
+                }
+            }
+
+            return errors == 0 ? 0 : 1;
+        });
+
+        return cmd;
     }
 
     // -------------------------------------------------------------------------

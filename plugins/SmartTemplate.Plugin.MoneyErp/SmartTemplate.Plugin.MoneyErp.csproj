@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,7 +7,7 @@
 
     <!-- NuGet package metadata -->
     <PackageId>SmartTemplate.Plugin.MoneyErp</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Description>SmartTemplate plugin that reads object metadata from the Money ERP S5 database and exposes it as template variables for code generation.</Description>
     <Authors>SmartTemplate</Authors>
     <PackageTags>smarttemplate;plugin;moneyerp;codegen</PackageTags>

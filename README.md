@@ -31,7 +31,7 @@ st render template.txt --var name=World -o hello.txt
 
 ```
 st render <input> [--data <file>] [-o <output>] [--var key=value]...
-                  [--ext .tmpl] [--no-interactive] [--plugins <dir>] [--stdout]
+                  [--ext .tmpl] [--no-interactive] [--plugins <dir>] [--stdout] [--clip]
 ```
 
 | Option | Description |
@@ -44,12 +44,22 @@ st render <input> [--data <file>] [-o <output>] [--var key=value]...
 | `--no-interactive` | Skip prompts — for CI / scripting |
 | `--plugins` | Directory containing plugin assemblies (`*.dll`) |
 | `--stdout` | Write rendered output to stdout instead of files |
+| `--clip` | Copy rendered output to clipboard (combinable with `--stdout`) |
+
+## Plugin commands
+
+```
+st plugin install <package> [--version <v>] [--source <url>] [--prerelease]
+st plugin update  [<package>]
+st plugin list
+st plugin uninstall <package>
+```
 
 ## Documentation
 
 - [Templates — syntax, date functions, directory mode, output resolution](docs/templates.md)
 - [Interactive prompts — types, date formats, examples](docs/prompts.md)
-- [Plugins — NuGet install, local plugins, writing your own](docs/plugins.md)
+- [Plugins — NuGet install, update, local plugins, writing your own](docs/plugins.md)
 
 ## Requirements
 
