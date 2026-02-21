@@ -112,17 +112,20 @@ public static class RunCommand
             var label = string.IsNullOrWhiteSpace(p.Name) ? p.Id : $"{p.Name}  [{p.Id}]";
             await Console.Out.WriteLineAsync($"  {i + 1}) {label}");
         }
+        await Console.Out.WriteLineAsync($"  {packages.Count + 1}) Exit");
 
-        await Console.Out.WriteAsync($"Select package (1-{packages.Count}): ");
+        await Console.Out.WriteAsync($"Select package (1-{packages.Count + 1}): ");
 
         var line = await Console.In.ReadLineAsync();
         if (string.IsNullOrWhiteSpace(line)) return null;
 
-        if (!int.TryParse(line.Trim(), out var idx) || idx < 1 || idx > packages.Count)
+        if (!int.TryParse(line.Trim(), out var idx) || idx < 1 || idx > packages.Count + 1)
         {
             await Console.Error.WriteLineAsync("Invalid selection.");
             return null;
         }
+
+        if (idx == packages.Count + 1) return null;
 
         return packages[idx - 1];
     }
