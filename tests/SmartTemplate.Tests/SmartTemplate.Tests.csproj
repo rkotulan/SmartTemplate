@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SmartTemplate.Core\SmartTemplate.Core.csproj" />
+    <ProjectReference Include="..\..\src\SmartTemplate.Cli\SmartTemplate.Cli.csproj" />
   </ItemGroup>
 
 </Project>

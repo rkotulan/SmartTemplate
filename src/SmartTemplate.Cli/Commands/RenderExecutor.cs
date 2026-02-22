@@ -27,6 +27,7 @@ internal static class RenderExecutor
         bool toStdout,
         bool toClip,
         string? workingDir,
+        IReadOnlyList<string>? contextDataFiles,
         CancellationToken ct,
         string? defaultOutputDir = null)
     {
@@ -50,6 +51,17 @@ internal static class RenderExecutor
 
         // Step 1: load file data
         var data = await DataMerger.LoadFileAsync(dataFile);
+
+        // Merge .st context data files (ordered root → CWD; later = deeper = higher priority)
+        if (contextDataFiles is { Count: > 0 })
+        {
+            foreach (var ctxFile in contextDataFiles)
+            {
+                var ctxData = await DataMerger.LoadFileAsync(ctxFile);
+                foreach (var kv in ctxData)
+                    data[kv.Key] = kv.Value;
+            }
+        }
 
         // Step 2: extract 'plugins' key from data dict (CLI option has priority)
         string? pluginsDir;

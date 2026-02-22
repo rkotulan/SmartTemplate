@@ -1,0 +1,35 @@
+namespace {{ namespace }}
+{
+    using {{ using_core_ui }};
+
+    public partial class {{ object_name }}Form : {{ object_name }}CardForm
+    {
+        public {{ object_name }}Form()
+        {
+            InitializeComponent();
+        }{{ if has_start_form }}
+
+        public override void StartForm()
+        {
+            base.StartForm();
+        }{{ end }}
+
+        protected override void FillFormRelations()
+        {
+            base.FillFormRelations();
+{{~ for prop in properties ~}}
+{{~ if prop.control_prefix ~}}
+            FormRelations.Add(InnerObject, ({{ object_name }} p) => p.{{ prop.name }}, {{ prop.control_name }});
+{{~ end ~}}
+{{~ end ~}}
+{{~ for group in property_groups }}
+            // {{ group.name }}
+{{~ for prop in group.properties ~}}
+{{~ if prop.control_prefix ~}}
+            FormRelations.Add(InnerObject.{{ group.name }}, ({{ group.interface_type }} p) => p.{{ prop.name }}, {{ prop.control_name }});
+{{~ end ~}}
+{{~ end ~}}
+{{- end }}
+        }
+    }
+}

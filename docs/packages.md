@@ -33,9 +33,53 @@ packages:
 | `no_interactive` | no | Skip prompts — for CI/scripting (default: `false`) |
 | `plugins` | no | Plugin directory or named global plugin |
 | `vars` | no | Additional `key=value` overrides (list) |
+| `context` | no | Filename searched for in `.st/` directories from CWD up to the project root. Each found file is merged (deepest directory wins), allowing per-directory overrides such as `namespace` or `connection_string`. |
 
 Paths `data` and `templates` are relative to the directory containing `packages.yaml`.
 The `output` path (when set) is also relative to `packages.yaml`; when omitted, output goes to the **invocation directory** — the working directory from which `st run` was called.
+
+## Context data files (`context:`)
+
+The `context:` field lets you maintain per-directory variable overrides without modifying the shared package data file.
+When set, `st run` searches for `.st/<filename>` starting from the **current working directory** and walking up to the project root (the directory containing `packages.yaml`).
+All files found are merged in **root-first order**, so the deepest file (closest to where you invoked `st run`) takes precedence.
+
+Merge priority (lowest → highest):
+
+1. Package `data:` file
+2. `.st/<context>` at the project root
+3. `.st/<context>` in intermediate directories
+4. `.st/<context>` in the current working directory  ← highest priority among data sources
+5. Interactive prompts
+6. `--var` overrides
+7. Plugin `EnrichAsync` output
+
+### Example
+
+```yaml
+# .st/packages.yaml
+packages:
+  - id: cardform
+    name: WinForms CardForm
+    data: data/defaults.yaml
+    context: cardform.yaml      # searches for .st/cardform.yaml up the tree
+    templates: templates/
+    output: ./out/
+```
+
+Directory layout:
+```
+MyProject/
+  .st/
+    packages.yaml
+    cardform.yaml          # namespace: MyProject.Root
+  src/
+    OrderModule/           ← cd here before st run
+      .st/
+        cardform.yaml      # namespace: MyProject.OrderModule  (wins)
+```
+
+Running `st run cardform` from `MyProject/src/OrderModule/` will use `namespace: MyProject.OrderModule`.
 
 ## Config file discovery
 

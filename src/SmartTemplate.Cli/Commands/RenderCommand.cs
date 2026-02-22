@@ -71,16 +71,17 @@ public static class RenderCommand
             try
             {
                 return await RenderExecutor.ExecuteAsync(
-                    input:         parseResult.GetValue(InputArg)!,
-                    dataFile:      parseResult.GetValue(DataOption),
-                    output:        parseResult.GetValue(OutputOption),
-                    vars:          parseResult.GetValue(VarOption) ?? [],
-                    extension:     parseResult.GetValue(ExtOption)!,
-                    noInteractive: parseResult.GetValue(NoInteractiveOption),
-                    cliPluginsDir: parseResult.GetValue(PluginsOption),
-                    toStdout:      parseResult.GetValue(StdoutOption),
-                    toClip:        parseResult.GetValue(ClipOption),
-                    workingDir:    null,
+                    input:            parseResult.GetValue(InputArg)!,
+                    dataFile:         parseResult.GetValue(DataOption),
+                    output:           parseResult.GetValue(OutputOption),
+                    vars:             parseResult.GetValue(VarOption) ?? [],
+                    extension:        parseResult.GetValue(ExtOption)!,
+                    noInteractive:    parseResult.GetValue(NoInteractiveOption),
+                    cliPluginsDir:    parseResult.GetValue(PluginsOption),
+                    toStdout:         parseResult.GetValue(StdoutOption),
+                    toClip:           parseResult.GetValue(ClipOption),
+                    workingDir:       null,
+                    contextDataFiles: null,
                     ct);
             }
             catch (Exception ex)

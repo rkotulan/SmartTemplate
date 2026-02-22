@@ -1,0 +1,36 @@
+# ----------------------------------------------------------------------------
+# SmartTemplate — WinForms CardForm generátor s MoneyERP pluginem
+# ----------------------------------------------------------------------------
+# Generuje 3 soubory pro entitu načtenou z MoneyERP databáze:
+#   {ObjectName}CardForm.cs          — bázová třída (CardForm<T>)
+#   {ObjectName}Form.cs              — partial třída s FillFormRelations
+#   {ObjectName}Form.Designer.cs     — designer (TableLayoutPanel + pole)
+#
+# Použití (spouštět z kořene repozitáře SmartTemplate):
+#   st render samples/winforms-moneyerp-cardform/templates/ \
+#             --data samples/winforms-moneyerp-cardform/data.yaml \
+#             -o ./out/
+#
+# Plugin naplní proměnné:
+#   object_caption   — popis entity z DB
+#   properties       — top-level properties (control_prefix != null → generuj pole)
+#     .name, .caption, .data_type, .control_prefix, .control_name
+#   property_groups  — sekce (PropertyType=3) s jejich child properties
+#     .name, .caption, .inner_object, .interface_type, .properties[]
+# ----------------------------------------------------------------------------
+
+prompts:
+  - name: object_name
+    label: Název objektu (ObjectName v MetaData_Objects)
+    type: string
+    default: Smlouva
+
+connection_string: "Data Source=.;Initial Catalog=S5_System_Dev;Integrated Security=False;\
+  Persist Security Info=False;User ID=sa;Password=<password>;TrustServerCertificate=True"
+
+plugins: plugins/SmartTemplate.Plugin.MoneyErp
+
+namespace: S5KSY.Modules3D.ServiceMan.UI
+using_csw: CSW.CSWSystemUI
+using_core_ui: S5KSY.Modules3D.CoreUI.Extensions
+has_start_form: false

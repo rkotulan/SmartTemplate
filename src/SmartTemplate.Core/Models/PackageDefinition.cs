@@ -34,4 +34,10 @@ public sealed class PackageDefinition
 
     /// <summary>Additional key=value overrides applied on top of the data file.</summary>
     public List<string>? Vars { get; set; }
+
+    /// <summary>
+    /// Filename to search for in <c>.st</c> directories up the tree
+    /// (context-specific overrides, deepest wins).
+    /// </summary>
+    public string? Context { get; set; }
 }

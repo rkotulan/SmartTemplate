@@ -92,6 +92,13 @@ public static class RunCommand
             // where the user invoked 'st run' (not the config file's directory).
             var defaultOutputDir = string.IsNullOrWhiteSpace(selected.Output) ? invocationCwd : null;
 
+            var contextFilename = selected.Context
+                ?? (selected.Data is not null ? Path.GetFileName(selected.Data) : null);
+
+            var contextDataFiles = contextFilename is not null
+                ? FindContextDataFiles(contextFilename, configDir, invocationCwd)
+                : Array.Empty<string>();
+
             try
             {
                 return await RenderExecutor.ExecuteAsync(
@@ -105,6 +112,7 @@ public static class RunCommand
                     toStdout:         selected.Stdout,
                     toClip:           selected.Clip,
                     workingDir:       configDir,
+                    contextDataFiles: contextDataFiles,
                     ct,
                     defaultOutputDir: defaultOutputDir);
             }
@@ -116,6 +124,47 @@ public static class RunCommand
         });
 
         return cmd;
+    }
+
+    /// <summary>
+    /// Walks from <paramref name="startDir"/> up to (and including) the effective search root
+    /// derived from <paramref name="configDir"/>, collecting all paths where
+    /// <c>.st/<paramref name="filename"/></c> exists.
+    /// Result is ordered root-first so that the deepest directory (CWD) has the highest priority
+    /// when merged in order.
+    /// </summary>
+    internal static IReadOnlyList<string> FindContextDataFiles(
+        string filename, string configDir, string startDir)
+    {
+        // If configDir itself is a .st/ dir (e.g. ".st/packages.yaml" case),
+        // the search root is its parent; otherwise it is configDir itself.
+        var configDirInfo = new DirectoryInfo(configDir);
+        var searchRoot = string.Equals(configDirInfo.Name, StDir,
+            StringComparison.OrdinalIgnoreCase)
+            ? configDirInfo.Parent!.FullName
+            : configDirInfo.FullName;
+
+        var found = new List<string>();
+        var dir   = new DirectoryInfo(Path.GetFullPath(startDir));
+
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, StDir, filename);
+            if (File.Exists(candidate))
+                found.Add(candidate);
+
+            if (string.Equals(dir.FullName, searchRoot, StringComparison.OrdinalIgnoreCase))
+                break;
+
+            // Stop if CWD has somehow wandered above the search root.
+            if (!dir.FullName.StartsWith(searchRoot, StringComparison.OrdinalIgnoreCase))
+                break;
+
+            dir = dir.Parent!;
+        }
+
+        found.Reverse(); // root → CWD order (deepest = highest priority when merged last)
+        return found;
     }
 
     /// <summary>

@@ -31,6 +31,7 @@ x86/
 bld/
 [Oo]bj/
 [Oo]ut/
+[Tt]mp/
 [Ll]og/
 [Ll]ogs/
 
@@ -395,6 +396,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Claude Code
+.claude/settings.local.json
 
 # VS Code files for those working on multiple tools
 .vscode/*
