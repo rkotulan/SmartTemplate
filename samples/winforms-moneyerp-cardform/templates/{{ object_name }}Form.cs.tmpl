@@ -1,4 +1,4 @@
-namespace {{ namespace }}
+namespace {{ base_namespace }}.{{ module_name }}UI
 {
     using {{ using_core_ui }};
 
@@ -19,14 +19,14 @@ namespace {{ namespace }}
             base.FillFormRelations();
 {{~ for prop in properties ~}}
 {{~ if prop.control_prefix ~}}
-            FormRelations.Add(InnerObject, ({{ object_name }} p) => p.{{ prop.name }}, {{ prop.control_name }});
+            FormRelations.Add(InnerObject, p => p.{{ prop.name }}, {{ prop.control_name }});
 {{~ end ~}}
 {{~ end ~}}
 {{~ for group in property_groups }}
             // {{ group.name }}
 {{~ for prop in group.properties ~}}
 {{~ if prop.control_prefix ~}}
-            FormRelations.Add(InnerObject.{{ group.name }}, ({{ group.interface_type }} p) => p.{{ prop.name }}, {{ prop.control_name }});
+            FormRelations.Add(InnerObject.{{ group.name }}, p => p.{{ prop.name }}, {{ prop.control_name }});
 {{~ end ~}}
 {{~ end ~}}
 {{- end }}

@@ -20,31 +20,103 @@
     end
   end
 
-  # Flat list of visible properties (top-level + groups), Poznamka vždy zvlášť na konci
-  $vp = []
+  # Returns true for prefixes that implement ISupportInitialize
+  func needs_init(prefix)
+    ret prefix == "pbe" || prefix == "gpbe" || prefix == "nud"
+  end
+
+  # Tries to parse a priority number from Description (first space-separated token).
+  # Returns null when Description is empty or not numeric.
+  func parse_priority(desc)
+    if desc == null
+      ret null
+    end
+    $t = desc | string.strip
+    if (string.size $t) == 0
+      ret null
+    end
+    ret ($t | string.split " ")[0] | string.to_int
+  end
+
+  # Collect all visible properties (top-level + groups), separate Poznamka
+  $vp_all   = []
+  $poznamka = null
   for prop in properties
-    if prop.control_prefix && prop.name != "Poznamka"
-      $vp = $vp | array.add prop
+    if prop.control_prefix
+      if prop.name == "Poznamka"
+        $poznamka = prop
+      else
+        $vp_all = $vp_all | array.add prop
+      end
     end
   end
   for group in property_groups
     for prop in group.properties
       if prop.control_prefix
-        $vp = $vp | array.add prop
+        $vp_all = $vp_all | array.add prop
       end
     end
   end
-  $n   = $vp | array.size
 
-  # Výpočet výšek: $n datových řádků (27 px) + EtchedLine (13 px) + Poznamka (61 px)
-  $th  = $n * 27 + 74
+  # Split into numbered (have priority in Description) and the rest
+  $vp_num   = []
+  $vp_alpha = []
+  for prop in $vp_all
+    if (parse_priority prop.description) != null
+      $vp_num   = $vp_num   | array.add prop
+    else
+      $vp_alpha = $vp_alpha | array.add prop
+    end
+  end
+
+  # Insertion-sort $vp_num by priority (ascending)
+  $sorted_num = []
+  for prop in $vp_num
+    $p    = parse_priority prop.description
+    $done = false
+    $tmp  = []
+    for s in $sorted_num
+      if !$done && $p <= (parse_priority s.description)
+        $tmp  = $tmp | array.add prop
+        $done = true
+      end
+      $tmp = $tmp | array.add s
+    end
+    if !$done
+      $tmp = $tmp | array.add prop
+    end
+    $sorted_num = $tmp
+  end
+
+  # Sort the rest alphabetically by caption
+  $sorted_alpha = $vp_alpha | array.sort "caption"
+
+  # Final list: numbered first, then alpha, Poznamka always last (handled separately)
+  $vp = $sorted_num
+  for prop in $sorted_alpha
+    $vp = $vp | array.add prop
+  end
+
+  $n           = $vp | array.size
+  $hasPoznamka = $poznamka != null
+
+  # Controls that need ISupportInitialize wrapping
+  $initControls = []
+  for prop in $vp
+    if needs_init prop.control_prefix
+      $initControls = $initControls | array.add prop
+    end
+  end
+
+  # Výpočet výšek: $n datových řádků (27 px) + volitelně EtchedLine (20 px) + Poznamka (54 px)
+  $th  = $n * 27 + ($hasPoznamka ? 74 : 0)
   $ph  = $th + 4
   $tph = $ph + 6
   $tbh = $tph + 29
   $ch  = $tbh + 10
   $mh  = $ch + 39
 ~}}
-namespace {{ namespace }}
+namespace {{ base_namespace }}.{{ module_name }}UI
 {
     partial class {{ object_name }}Form
     {
@@ -80,16 +152,22 @@ namespace {{ namespace }}
             this.label{{ for.index + 1 }} = new System.Windows.Forms.Label();
             this.{{ prop.control_name }} = new {{ ctrl_class prop.control_prefix }}();
 {{~ end }}
-            this.etcLine = new System.Windows.Forms.Panel();
-            this.labelPoznamka = new System.Windows.Forms.Label();
+{{~ if $hasPoznamka }}
+            this.etchedLinePoznamka = new CSW.Controls.EtchedLine();
             this.tbPoznamka = new System.Windows.Forms.TextBox();
+{{~ end }}
             this.toolStripContainer1.ContentPanel.SuspendLayout();
             this.toolStripContainer1.SuspendLayout();
             this.panelContent.SuspendLayout();
             this.TabControlExConatiner.SuspendLayout();
             this.tpObecne.SuspendLayout();
+            this.tpUzivatelPromenne.SuspendLayout();
+            this.tpAttachments.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.S5StyleController)).BeginInit();
             this.tableLayoutPanel1.SuspendLayout();
+{{~ for prop in $initControls }}
+            ((System.ComponentModel.ISupportInitialize)(this.{{ prop.control_name }})).BeginInit();
+{{~ end }}
             this.SuspendLayout();
             //
             // toolStripContainer1
@@ -164,20 +242,26 @@ namespace {{ namespace }}
             this.tableLayoutPanel1.Controls.Add(this.label{{ for.index + 1 }}, 0, {{ for.index }});
             this.tableLayoutPanel1.Controls.Add(this.{{ prop.control_name }}, 1, {{ for.index }});
 {{~ end }}
-            this.tableLayoutPanel1.Controls.Add(this.etcLine, 0, {{ $n }});
-            this.tableLayoutPanel1.SetColumnSpan(this.etcLine, 2);
-            this.tableLayoutPanel1.Controls.Add(this.labelPoznamka, 0, {{ $n + 1 }});
-            this.tableLayoutPanel1.Controls.Add(this.tbPoznamka, 1, {{ $n + 1 }});
+{{~ if $hasPoznamka }}
+            this.tableLayoutPanel1.Controls.Add(this.etchedLinePoznamka, 0, {{ $n }});
+            this.tableLayoutPanel1.SetColumnSpan(this.etchedLinePoznamka, 2);
+            this.tableLayoutPanel1.Controls.Add(this.tbPoznamka, 0, {{ $n + 1 }});
+            this.tableLayoutPanel1.SetColumnSpan(this.tbPoznamka, 2);
+{{~ end }}
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 2);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = {{ $n + 3 }};
+            this.tableLayoutPanel1.RowCount = {{ $n + ($hasPoznamka ? 3 : 1) }};
 {{~ for prop in $vp }}
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
 {{~ end }}
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 13F));
+{{~ if $hasPoznamka }}
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 0F));
+{{~ else }}
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+{{~ end }}
             this.tableLayoutPanel1.Size = new System.Drawing.Size(350, {{ $th }});
             this.tableLayoutPanel1.TabIndex = 0;
 {{~ for prop in $vp }}
@@ -197,38 +281,45 @@ namespace {{ namespace }}
             this.{{ prop.control_name }}.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.{{ prop.control_name }}.Location = new System.Drawing.Point(123, {{ for.index * 27 + 3 }});
             this.{{ prop.control_name }}.Name = "{{ prop.control_name }}";
+{{~ if prop.control_prefix == "gpbe" }}
+            this.{{ prop.control_name }}.AlwaysUseSetInnerListForPrediction = false;
+            this.{{ prop.control_name }}.CustomNezarazenoID = new System.Guid("00000000-0000-0000-0000-000000000000");
+            this.{{ prop.control_name }}.ShownColumn = null;
+            this.{{ prop.control_name }}.ShownColumnDelimiter = null;
+{{~ else if prop.control_prefix == "pbe" }}
+            this.{{ prop.control_name }}.ObjectName = null;
+            this.{{ prop.control_name }}.ShownColumn = null;
+            this.{{ prop.control_name }}.ShownColumnDelimiter = null;
+            this.{{ prop.control_name }}.ShowTemplates = false;
+{{~ end }}
             this.{{ prop.control_name }}.Size = new System.Drawing.Size(224, 21);
             this.{{ prop.control_name }}.TabIndex = {{ for.index * 2 + 1 }};
 {{~ end }}
+{{~ if $hasPoznamka }}
             //
-            // etcLine
+            // etchedLinePoznamka
             //
-            this.etcLine.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.etcLine.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.etcLine.Location = new System.Drawing.Point(0, {{ $n * 27 + 5 }});
-            this.etcLine.Name = "etcLine";
-            this.etcLine.Size = new System.Drawing.Size(350, 2);
-            this.etcLine.TabIndex = {{ $n * 2 }};
-            //
-            // labelPoznamka
-            //
-            this.labelPoznamka.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right | System.Windows.Forms.AnchorStyles.Top)));
-            this.labelPoznamka.AutoSize = true;
-            this.labelPoznamka.Location = new System.Drawing.Point(3, {{ $n * 27 + 21 }});
-            this.labelPoznamka.Name = "labelPoznamka";
-            this.labelPoznamka.Size = new System.Drawing.Size(114, 13);
-            this.labelPoznamka.TabIndex = 0;
-            this.labelPoznamka.Text = "Poznámka";
+            this.etchedLinePoznamka.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.etchedLinePoznamka.BackColor = System.Drawing.Color.Transparent;
+            this.etchedLinePoznamka.Location = new System.Drawing.Point(3, {{ $n * 27 + 3 }});
+            this.etchedLinePoznamka.Margin = new System.Windows.Forms.Padding(3, 0, 3, 0);
+            this.etchedLinePoznamka.Name = "etchedLinePoznamka";
+            this.etchedLinePoznamka.Size = new System.Drawing.Size(344, 16);
+            this.etchedLinePoznamka.TabIndex = {{ $n * 2 }};
+            this.etchedLinePoznamka.TabStop = false;
+            this.etchedLinePoznamka.Text = "{{ $poznamka.caption }}";
+            this.etchedLinePoznamka.UnderLine = false;
             //
             // tbPoznamka
             //
-            this.tbPoznamka.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right | System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)));
-            this.tbPoznamka.Location = new System.Drawing.Point(123, {{ $n * 27 + 18 }});
+            this.tbPoznamka.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tbPoznamka.Location = new System.Drawing.Point(3, {{ $n * 27 + 23 }});
             this.tbPoznamka.Multiline = true;
             this.tbPoznamka.Name = "tbPoznamka";
             this.tbPoznamka.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbPoznamka.Size = new System.Drawing.Size(224, 55);
+            this.tbPoznamka.Size = new System.Drawing.Size(344, 50);
             this.tbPoznamka.TabIndex = {{ $n * 2 + 1 }};
+{{~ end }}
             //
             // {{ object_name }}Form
             //
@@ -254,9 +345,14 @@ namespace {{ namespace }}
             this.panelContent.ResumeLayout(false);
             this.TabControlExConatiner.ResumeLayout(false);
             this.tpObecne.ResumeLayout(false);
+            this.tpUzivatelPromenne.ResumeLayout(false);
+            this.tpAttachments.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.S5StyleController)).EndInit();
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
+{{~ for prop in $initControls }}
+            ((System.ComponentModel.ISupportInitialize)(this.{{ prop.control_name }})).EndInit();
+{{~ end }}
             this.ResumeLayout(false);
 
         }
@@ -268,8 +364,9 @@ namespace {{ namespace }}
         private System.Windows.Forms.Label label{{ for.index + 1 }};
         private {{ ctrl_class prop.control_prefix }} {{ prop.control_name }};
 {{~ end }}
-        private System.Windows.Forms.Panel etcLine;
-        private System.Windows.Forms.Label labelPoznamka;
+{{~ if $hasPoznamka }}
+        private CSW.Controls.EtchedLine etchedLinePoznamka;
         private System.Windows.Forms.TextBox tbPoznamka;
+{{~ end }}
     }
 }

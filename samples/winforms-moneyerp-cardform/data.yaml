@@ -30,7 +30,8 @@ connection_string: "Data Source=.;Initial Catalog=S5_System_Dev;Integrated Secur
 
 plugins: plugins/SmartTemplate.Plugin.MoneyErp
 
-namespace: S5KSY.Modules3D.ServiceMan.UI
+base_namespace: S5KSY.Modules3D
+module_name: Override
 using_csw: CSW.CSWSystemUI
 using_core_ui: S5KSY.Modules3D.CoreUI.Extensions
 has_start_form: false

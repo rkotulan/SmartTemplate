@@ -55,6 +55,7 @@ public sealed class MoneyErpPlugin : IPlugin
         SELECT
             p.PropertyName,
             p.PropertyCaption,
+            p.Description,
             p.PropertyType,
             p.DataType,
             p.InnerObjectName,
@@ -80,6 +81,7 @@ public sealed class MoneyErpPlugin : IPlugin
             parent_p.InnerObjectName AS GroupInnerObject,
             child_p.PropertyName     AS PropName,
             child_p.PropertyCaption  AS PropCaption,
+            child_p.Description      AS PropDescription,
             child_p.PropertyType     AS PropType,
             child_p.DataType         AS PropDataType,
             key_p.DataType           AS KeyDataType,
@@ -150,6 +152,8 @@ public sealed class MoneyErpPlugin : IPlugin
             var name          = reader.GetString(reader.GetOrdinal("PropertyName"));
             var caption       = reader.IsDBNull(reader.GetOrdinal("PropertyCaption"))
                 ? name : reader.GetString(reader.GetOrdinal("PropertyCaption"));
+            var description   = reader.IsDBNull(reader.GetOrdinal("Description"))
+                ? null : reader.GetString(reader.GetOrdinal("Description"));
             var propType      = (int)reader.GetInt16(reader.GetOrdinal("PropertyType"));
             var dataType      = reader.IsDBNull(reader.GetOrdinal("DataType"))
                 ? (byte?)null : (byte)reader.GetInt16(reader.GetOrdinal("DataType"));
@@ -164,6 +168,7 @@ public sealed class MoneyErpPlugin : IPlugin
             {
                 ["name"]              = name,
                 ["caption"]           = caption,
+                ["description"]       = description,
                 ["data_type"]         = DataTypeName(dataType),
                 ["control_prefix"]    = prefix,
                 ["control_name"]      = prefix is not null ? prefix + name : null,
@@ -198,6 +203,8 @@ public sealed class MoneyErpPlugin : IPlugin
             var propName        = reader.GetString(reader.GetOrdinal("PropName"));
             var propCaption     = reader.IsDBNull(reader.GetOrdinal("PropCaption"))
                 ? propName : reader.GetString(reader.GetOrdinal("PropCaption"));
+            var propDescription = reader.IsDBNull(reader.GetOrdinal("PropDescription"))
+                ? null : reader.GetString(reader.GetOrdinal("PropDescription"));
             var propType        = (int)reader.GetInt16(reader.GetOrdinal("PropType"));
             var propDataType    = reader.IsDBNull(reader.GetOrdinal("PropDataType"))
                 ? (byte?)null : reader.GetByte(reader.GetOrdinal("PropDataType"));
@@ -231,6 +238,7 @@ public sealed class MoneyErpPlugin : IPlugin
             {
                 ["name"]              = propName,
                 ["caption"]           = propCaption,
+                ["description"]       = propDescription,
                 ["data_type"]         = DataTypeName(effectiveDataType),
                 ["control_prefix"]    = prefix,
                 ["control_name"]      = prefix is not null ? prefix + groupName + propName : null,
