@@ -170,7 +170,10 @@ internal static class RenderExecutor
             Directory.CreateDirectory(dir);
 
         await File.WriteAllTextAsync(outputPath, rendered);
-        Console.WriteLine($"  {inputPath} -> {outputPath}");
+        Console.Write($"  {Path.GetFileName(inputPath)} -> {outputPath}  ");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("done");
+        Console.ResetColor();
     }
 
     internal static async Task RenderDirectoryAsync(

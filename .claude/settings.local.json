@@ -18,7 +18,13 @@
       "Bash(sqlcmd:*)",
       "Bash(python3:*)",
       "Bash(ls:*)",
-      "Bash(dotnet restore SmartTemplate.slnx /nodeReuse:false)"
+      "Bash(dotnet restore SmartTemplate.slnx /nodeReuse:false)",
+      "Bash(mkdir -p \"x:/Dev/Repo/my/github/SmartTemplate/tmp/out\" && cd \"x:/Dev/Repo/my/github/SmartTemplate\" && st render samples/winforms-card-form/templates/ --data samples/winforms-card-form/data.yaml -o tmp/out/ 2>&1)",
+      "Bash(cd \"x:/Dev/Repo/my/github/SmartTemplate\" && st render \"samples/winforms-card-form/templates/{{ entity_name }}Form.cs.tmpl\" --data samples/winforms-card-form/data.yaml -o tmp/out/ManStavServisuForm.cs 2>&1)",
+      "Bash(cat:*)",
+      "Bash(cd \"x:/Dev/Repo/my/github/SmartTemplate\" && rm -rf /tmp/st_out && mkdir /tmp/st_out && dotnet run --project src/SmartTemplate.Cli/ -- render \"samples/winforms-moneyerp-cardform/templates/\" --data /tmp/test_moneyerp.yaml -o /tmp/st_out/ 2>&1)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
