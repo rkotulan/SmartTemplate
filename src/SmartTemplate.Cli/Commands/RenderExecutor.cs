@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using SmartTemplate.Core;
 using SmartTemplate.Core.Plugins;
 using TextCopy;
@@ -170,7 +170,11 @@ internal static class RenderExecutor
             Directory.CreateDirectory(dir);
 
         await File.WriteAllTextAsync(outputPath, rendered);
-        Console.Write($"  {Path.GetFileName(inputPath)} -> {outputPath}  ");
+        Console.Write($"  {Path.GetFileName(inputPath)}");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write($" -> ");
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.Write($"{outputPath}  ");
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("done");
         Console.ResetColor();
